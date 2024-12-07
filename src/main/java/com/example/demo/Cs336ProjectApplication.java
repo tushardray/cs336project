@@ -108,10 +108,8 @@ public class Cs336ProjectApplication {
 		Scanner scanner = new Scanner(System.in);
 
 		while (true) {
-			// Display current filter stats
 			displayFilterStats(filters);
 
-			// Display menu
 			System.out.println("\nPlease choose an option:");
 			System.out.println("1. Add filter");
 			System.out.println("2. Delete filter");
@@ -155,7 +153,6 @@ public class Cs336ProjectApplication {
 				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password");
 				PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
 
-			// Set all parameters
 			for (int i = 0; i < params.size(); i++) {
 				stmt.setObject(i + 1, params.get(i));
 			}
@@ -392,10 +389,8 @@ public class Cs336ProjectApplication {
 		System.out.println("\nCurrent filters:");
 		System.out.println("0. Delete ALL filters");
 
-		// Create a list to track which filters are actually active
 		List<String> activeFilters = new ArrayList<>();
 
-		// Only show filters that are actually set
 		if (!filters.msamdList.isEmpty()) {
 			activeFilters.add("1. MSAMD filters: " + filters.msamdList);
 		}
@@ -438,13 +433,11 @@ public class Cs336ProjectApplication {
 			activeFilters.add("9. Owner Occupancy filters: " + filters.ownerOccupancyList);
 		}
 
-		// Display message if no filters are active
 		if (activeFilters.isEmpty()) {
 			System.out.println("No active filters to delete.");
 			return;
 		}
 
-		// Display active filters
 		for (String filter : activeFilters) {
 			System.out.println(filter);
 		}
@@ -529,13 +522,12 @@ public class Cs336ProjectApplication {
 
 		double totalWeightedRate = 0;
 		double totalLoanAmount = 0;
-		double baseRate = 2.33; // Base APR
+		double baseRate = 2.33; 
 
 		try (Connection conn = DriverManager.getConnection(
 				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password");
 				PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
 
-			// Set all parameters
 			for (int i = 0; i < params.size(); i++) {
 				stmt.setObject(i + 1, params.get(i));
 			}
@@ -545,26 +537,23 @@ public class Cs336ProjectApplication {
 			while (rs.next()) {
 				int lienStatus = rs.getInt("lien_status");
 				double rateSpread = rs.getDouble("rate_spread");
-				double loanAmount = rs.getDouble("loan_amount_000s") * 1000; // Convert to actual amount
+				double loanAmount = rs.getDouble("loan_amount_000s") * 1000; 
 
-				// Calculate effective rate spread based on rules
 				double effectiveRateSpread;
-				if (rateSpread == 0) { // Assuming 0 means unknown/NA
+				if (rateSpread == 0) { 
 					if (lienStatus == 1) {
 						effectiveRateSpread = 1.5;
 					} else if (lienStatus == 2) {
 						effectiveRateSpread = 3.5;
 					} else {
-						effectiveRateSpread = 3.5; // Default to higher spread if lien status unknown
+						effectiveRateSpread = 3.5; 
 					}
 				} else {
 					effectiveRateSpread = rateSpread;
 				}
 
-				// Calculate total rate for this loan
 				double totalRate = baseRate + effectiveRateSpread;
 
-				// Add to weighted average calculation
 				totalWeightedRate += (totalRate * loanAmount);
 				totalLoanAmount += loanAmount;
 			}
@@ -574,21 +563,17 @@ public class Cs336ProjectApplication {
 				return;
 			}
 
-			// Calculate final weighted average rate
 			double finalRate = totalWeightedRate / totalLoanAmount;
 
-			// Display results
 			System.out.printf("\nSecuritization Summary:");
 			System.out.println("\nTotal Cost of Securitization: $" + Math.round(totalLoanAmount));
 			System.out.printf("\nWeighted Average Rate: %.2f%%", finalRate);
 
-			// Ask for user decision
 			Scanner scanner = new Scanner(System.in);
 			System.out.print("\n\nDo you accept this rate and cost? (yes/no): ");
 			String decision = scanner.nextLine().toLowerCase();
 
 			if (decision.equals("yes")) {
-				// Update purchaser_type to private securitization
 				try {
 					StringBuilder updateSql = new StringBuilder(
 							"UPDATE preliminary SET purchaser_type = 1 WHERE action_taken = 1");
@@ -618,7 +603,6 @@ public class Cs336ProjectApplication {
 	}
 
 	private static void appendFilterConditions(StringBuilder sql, List<Object> params, LoanFilters filters) {
-		// Add MSAMD filter
 		if (!filters.msamdList.isEmpty()) {
 			sql.append(" AND msamd IN (");
 			sql.append(String.join(",", Collections.nCopies(filters.msamdList.size(), "?")));
@@ -626,7 +610,6 @@ public class Cs336ProjectApplication {
 			params.addAll(filters.msamdList);
 		}
 
-		// Fixed income/debt ratio filter to match SQL behavior
 		if (filters.minIncomeDebtRatio != null) {
 			sql.append(" AND (applicant_income_000s / loan_amount_000s) >= ?");
 			params.add(filters.minIncomeDebtRatio);
@@ -636,7 +619,6 @@ public class Cs336ProjectApplication {
 			params.add(filters.maxIncomeDebtRatio);
 		}
 
-		// Rest of the filters remain the same...
 		if (!filters.countyList.isEmpty()) {
 			sql.append(" AND county_name IN (");
 			sql.append(String.join(",", Collections.nCopies(filters.countyList.size(), "?")));
@@ -677,7 +659,6 @@ public class Cs336ProjectApplication {
 			params.addAll(filters.ownerOccupancyList);
 		}
 
-		// Add tract to MSAMD income filter if specified
 		if (filters.minTractMsamdIncome != null) {
 			sql.append(" AND tract_to_msamd_income >= ?");
 			params.add(filters.minTractMsamdIncome);
