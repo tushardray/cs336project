@@ -146,8 +146,8 @@ public class Cs336ProjectApplication {
 				"SELECT COUNT(*) as row_count, SUM(loan_amount_000s) as total_loan_amount " +
 						"FROM preliminary WHERE action_taken = 1");
 
-		List<Object> params = new ArrayList<>(); // Create params list
-		appendFilterConditions(sql, params, filters); // Pass params list to method
+		List<Object> params = new ArrayList<>(); 
+		appendFilterConditions(sql, params, filters); 
 
 		try (Connection conn = DriverManager.getConnection(
 				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password");
