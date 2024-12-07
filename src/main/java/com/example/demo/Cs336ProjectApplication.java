@@ -2,178 +2,689 @@ package com.example.demo;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.sql.*;
+import java.util.*;
 
 @SpringBootApplication
 public class Cs336ProjectApplication {
+	public static class LoanFilters {
+		Set<Integer> msamdList = new HashSet<>();
+		Double minIncomeDebtRatio = null;
+		Double maxIncomeDebtRatio = null;
+		Set<String> countyList = new HashSet<>();
+		Set<Integer> loanTypeList = new HashSet<>();
+		Double minTractMsamdIncome = null;
+		Double maxTractMsamdIncome = null;
+		Set<Integer> loanPurposeList = new HashSet<>();
+		Set<Integer> propertyTypeList = new HashSet<>();
+		String purchaserTypeFilter = null;
+		Set<Integer> ownerOccupancyList = new HashSet<>();
 
-	public static void main(String[] args) {
-//		mvn spring-boot:run
+		public String getFilterDescription() {
+			List<String> activeFilters = new ArrayList<>();
 
-		SpringApplication.run(Cs336ProjectApplication.class, args);
-		System.out.println("hello world");
-
-		String SQL_SELECT = "Select * FROM joined WHERE action_take=1";
-
-		try (Connection conn = DriverManager.getConnection(
-				"jdbc:postgresql://localhost:5432/postgres", "postgres", "Test1234*");
-			 PreparedStatement statement = conn.prepareStatement(SQL_SELECT)
-		) {
-			ResultSet results = statement.executeQuery();
-			
-			int total = 0;
-			while (results.next()) {
-				total = results.getInt("count");
+			if (!msamdList.isEmpty()) {
+				activeFilters.add("MSAMD IN (" + String.join(", ", msamdList.stream().map(String::valueOf).toList()) + ")");
 			}
-			System.out.println(total);
+
+			if (minIncomeDebtRatio != null || maxIncomeDebtRatio != null) {
+				String ratioFilter = "Income/Debt Ratio: ";
+				if (minIncomeDebtRatio != null && maxIncomeDebtRatio != null) {
+					ratioFilter += "between " + minIncomeDebtRatio + " and " + maxIncomeDebtRatio;
+				} else if (minIncomeDebtRatio != null) {
+					ratioFilter += ">= " + minIncomeDebtRatio;
+				} else {
+					ratioFilter += "<= " + maxIncomeDebtRatio;
+				}
+				activeFilters.add(ratioFilter);
+			}
+
+			if (!countyList.isEmpty()) {
+				activeFilters.add("County IN (" + String.join(", ", countyList) + ")");
+			}
+
+			if (!loanTypeList.isEmpty()) {
+				activeFilters
+						.add("Loan Type IN (" + String.join(", ", loanTypeList.stream().map(String::valueOf).toList()) + ")");
+			}
+
+			if (minTractMsamdIncome != null || maxTractMsamdIncome != null) {
+				String incomeFilter = "Tract/MSAMD Income: ";
+				if (minTractMsamdIncome != null && maxTractMsamdIncome != null) {
+					incomeFilter += "between " + minTractMsamdIncome + " and " + maxTractMsamdIncome;
+				} else if (minTractMsamdIncome != null) {
+					incomeFilter += ">= " + minTractMsamdIncome;
+				} else {
+					incomeFilter += "<= " + maxTractMsamdIncome;
+				}
+				activeFilters.add(incomeFilter);
+			}
+
+			if (!loanPurposeList.isEmpty()) {
+				activeFilters
+						.add("Loan Purpose IN (" + String.join(", ", loanPurposeList.stream().map(String::valueOf).toList()) + ")");
+			}
+
+			if (!propertyTypeList.isEmpty()) {
+				activeFilters.add(
+						"Property Type IN (" + String.join(", ", propertyTypeList.stream().map(String::valueOf).toList()) + ")");
+			}
+
+			if (purchaserTypeFilter != null) {
+				activeFilters.add("Purchaser Type = '" + purchaserTypeFilter + "'");
+			}
+
+			if (!ownerOccupancyList.isEmpty()) {
+				activeFilters.add("Owner Occupancy IN ("
+						+ String.join(", ", ownerOccupancyList.stream().map(String::valueOf).toList()) + ")");
+			}
+
+			if (activeFilters.isEmpty()) {
+				return "No active filters";
+			}
+
+			return String.join(" AND ", activeFilters);
 		}
 
-		catch (SQLException e) {
-			e.printStackTrace();
-		}catch (Exception e) {
-			e.printStackTrace();
+		public void clearAllFilters() {
+			msamdList.clear();
+			minIncomeDebtRatio = null;
+			maxIncomeDebtRatio = null;
+			countyList.clear();
+			loanTypeList.clear();
+			minTractMsamdIncome = null;
+			maxTractMsamdIncome = null;
+			loanPurposeList.clear();
+			propertyTypeList.clear();
+			purchaserTypeFilter = null;
+			ownerOccupancyList.clear();
 		}
-		}
-
 	}
 
-	// 				try (Connection connection = DriverManager.getConnection(url, user, password);
-	// 						Statement stmt = connection.createStatement();
-	// 						ResultSet rs = stmt.executeQuery(query)) {
-	
-	// 				// Process the result set
-	// 				while (rs.next()) {
-	// 						int loan_amount= rs.getInt("loan_amount");
-	// 						int as_of_year= rs.getInt("as_of_year");
-	// 						String respondent_id= rs.getString("respondent_id");
-	// 						String agency_name= rs.getString("agency_name");
-	// 						String agency_abbr= rs.getString("agency_abbr");
-	// 						int agency_code= rs.getInt("agency_code");
-	// 						String loan_type_name= rs.getString("loan_type_name");
-	// 						int loan_type= rs.getInt("loan_type");
-	// 						String property_type_name= rs.getString("property_type_name");
-	// 						int property_type= rs.getInt("property_type");
-	// 						String loan_purpose_name= rs.getString("loan_purpose_name");
-	// 						int loan_purpose= rs.getInt("loan_purpose");
-	// 						String owner_occupancy_name= rs.getString("owner_occupancy_name");
-	// 						int owner_occupancy= rs.getInt("owner_occupancy");
-	// 						String preapproval_name= rs.getString("preapproval_name");
-	// 						int preapproval= rs.getInt("preapproval");
-	// 						String action_take_name= rs.getString("action_take_name");
-	// 						int action_take= rs.getInt("action_take");
-	// 						String msamd_name= rs.getString("msamd_name");
-	// 						int msamd= rs.getInt("msamd");
-	// 						int state_id = rs.getInt("state_id");
-	// 						String state_name = rs.getString("state_name");
-	// 						String state_abbr = rs.getString("state_abbr");
-	// 						int state_code = rs.getInt("state_code");
-	// 						String county_name = rs.getString("county_name");
-	// 						int county_code = rs.getInt("county_code");
-	// 						int census_tract_number = rs.getInt("census_tract_number");
-	// 						String ethnicity_name = rs.getString("ethnicity_name");
-	// 						int ethnicity = rs.getInt("ethnicity");
-	// 						String co_applicant_ethnicity_name = rs.getString("co_applicant_ethnicity_name");
-	// 						int co_applicant_ethnicity = rs.getInt("co_applicant_ethnicity");
-	// 						String race = rs.getString("race");
-	// 						int race_number = rs.getInt("race_number");
-	// 						String co_applicant_race_name = rs.getString("co_applicant_race_name");
-	// 						int co_applicant_race_code = rs.getInt("co_applicant_race_code");
-	// 						String applicant_sex_name = rs.getString("applicant_sex_name");
-	// 						int applicant_sex = rs.getInt("applicant_sex");
-	// 						String co_applicant_sex_name = rs.getString("co_applicant_sex_name");
-	// 						int co_applicant_sex = rs.getInt("co_applicant_sex");
-	// 						int applicant_income_000s = rs.getInt("applicant_income_000s");
-	// 						String purchaser_type_name = rs.getString("purchaser_type_name");
-	// 						int purchaser_type = rs.getInt("purchaser_type");
-	// 						String denial_reason_name = rs.getString("denial_reason_name");
-	// 						int denial_reason = rs.getInt("denial_reason");
-	// 						int rspread = rs.getInt("rspread");
-	// 						String hoepa_status_name = rs.getString("hoepa_status_name");
-	// 						int hoepa_status = rs.getInt("hoepa_status");
-	// 						String lien_status_name = rs.getString("lien_status_name");
-	// 						int lien_status = rs.getInt("lien_status");
-	// 						int population = rs.getInt("population");
-	// 						int minority_population = rs.getInt("minority_population");
-	// 						int hud_median_family_income = rs.getInt("hud_median_family_income");
-	// 						int tract_to_msamd_income = rs.getInt("tract_to_msamd_income");
-	// 						int number_of_owner_occupied_units = rs.getInt("number_of_owner_occupied_units");
-	// 						int number_of_1_to_4_family_units = rs.getInt("number_of_1_to_4_family_units");
-	// 						String edit_status_name = rs.getString("edit_status_name");
-	// 						String edit_status = rs.getString("edit_status");
-	// 						String sequence = rs.getString("sequence");
-	// 						String application_date_indicator = rs.getString("application_date_indicator");
-	
-	// 						// Print all the values
-	// 						System.out.println("Loan Amount: " + loan_amount);
-	// 						System.out.println("As of Year: " + as_of_year);
-	// 						System.out.println("Respondent ID: " + respondent_id);
-	// 						System.out.println("Agency Name: " + agency_name);
-	// 						System.out.println("Agency Abbreviation: " + agency_abbr);
-	// 						System.out.println("Agency Code: " + agency_code);
-	// 						System.out.println("Loan Type Name: " + loan_type_name);
-	// 						System.out.println("Loan Type: " + loan_type);
-	// 						System.out.println("Property Type Name: " + property_type_name);
-	// 						System.out.println("Property Type: " + property_type);
-	// 						System.out.println("Loan Purpose Name: " + loan_purpose_name);
-	// 						System.out.println("Loan Purpose: " + loan_purpose);
-	// 						System.out.println("Owner Occupancy Name: " + owner_occupancy_name);
-	// 						System.out.println("Owner Occupancy: " + owner_occupancy);
-	// 						System.out.println("Preapproval Name: " + preapproval_name);
-	// 						System.out.println("Preapproval: " + preapproval);
-	// 						System.out.println("Action Take Name: " + action_take_name);
-	// 						System.out.println("Action Take: " + action_take);
-	// 						System.out.println("MSAMD Name: " + msamd_name);
-	// 						System.out.println("MSAMD: " + msamd);
-	// 						System.out.println("State ID: " + state_id);
-	// 						System.out.println("State Name: " + state_name);
-	// 						System.out.println("State Abbreviation: " + state_abbr);
-	// 						System.out.println("State Code: " + state_code);
-	// 						System.out.println("County Name: " + county_name);
-	// 						System.out.println("County Code: " + county_code);
-	// 						System.out.println("Census Tract Number: " + census_tract_number);
-	// 						System.out.println("Ethnicity Name: " + ethnicity_name);
-	// 						System.out.println("Ethnicity: " + ethnicity);
-	// 						System.out.println("Co-Applicant Ethnicity Name: " + co_applicant_ethnicity_name);
-	// 						System.out.println("Co-Applicant Ethnicity: " + co_applicant_ethnicity);
-	// 						System.out.println("Race: " + race);
-	// 						System.out.println("Race Number: " + race_number);
-	// 						System.out.println("Co-Applicant Race Name: " + co_applicant_race_name);
-	// 						System.out.println("Co-Applicant Race Code: " + co_applicant_race_code);
-	// 						System.out.println("Applicant Sex Name: " + applicant_sex_name);
-	// 						System.out.println("Applicant Sex: " + applicant_sex);
-	// 						System.out.println("Co-Applicant Sex Name: " + co_applicant_sex_name);
-	// 						System.out.println("Co-Applicant Sex: " + co_applicant_sex);
-	// 						System.out.println("Applicant Income (000s): " + applicant_income_000s);
-	// 						System.out.println("Purchaser Type Name: " + purchaser_type_name);
-	// 						System.out.println("Purchaser Type: " + purchaser_type);
-	// 						System.out.println("Denial Reason Name: " + denial_reason_name);
-	// 						System.out.println("Denial Reason: " + denial_reason);
-	// 						System.out.println("Rspread: " + rspread);
-	// 						System.out.println("HOEPA Status Name: " + hoepa_status_name);
-	// 						System.out.println("HOEPA Status: " + hoepa_status);
-	// 						System.out.println("Lien Status Name: " + lien_status_name);
-	// 						System.out.println("Lien Status: " + lien_status);
-	// 						System.out.println("Population: " + population);
-	// 						System.out.println("Minority Population: " + minority_population);
-	// 						System.out.println("HUD Median Family Income: " + hud_median_family_income);
-	// 						System.out.println("Tract to MSAMD Income: " + tract_to_msamd_income);
-	// 						System.out.println("Number of Owner-Occupied Units: " + number_of_owner_occupied_units);
-	// 						System.out.println("Number of 1 to 4 Family Units: " + number_of_1_to_4_family_units);
-	// 						System.out.println("Edit Status Name: " + edit_status_name);
-	// 						System.out.println("Edit Status: " + edit_status);
-	// 						System.out.println("Sequence: " + sequence);
-	// 						System.out.println("Application Date Indicator: " + application_date_indicator);
-	// 						System.out.println("------------------------------------");
-	// 				}
-	
-	// 				} catch (SQLException e) {
-	// 						// Print error message if connection or query fails
-	// 						System.out.println("Error: " + e.getMessage());
-	// 						e.printStackTrace();
-	// 				}
-	// 		}
-	// }
+	public static void main(String[] args) {
+		SpringApplication.run(Cs336ProjectApplication.class, args);
+
+		LoanFilters filters = new LoanFilters();
+		Scanner scanner = new Scanner(System.in);
+
+		while (true) {
+			// Display current filter stats
+			displayFilterStats(filters);
+
+			// Display menu
+			System.out.println("\nPlease choose an option:");
+			System.out.println("1. Add filter");
+			System.out.println("2. Delete filter");
+			System.out.println("3. Calculate rate");
+			System.out.println("4. Exit");
+
+			System.out.print("\nEnter your choice (1-4): ");
+			String choice = scanner.nextLine();
+
+			switch (choice) {
+				case "1":
+					addFilter(scanner, filters);
+					break;
+				case "2":
+					deleteFilter(scanner, filters);
+					break;
+				case "3":
+					calculateRate(filters);
+					break;
+				case "4":
+					System.out.println("Goodbye!");
+					scanner.close();
+					System.exit(0);
+				default:
+					System.out.println("Invalid choice. Please try again.");
+			}
+		}
+	}
+
+	private static void displayFilterStats(LoanFilters filters) {
+		System.out.println("\nCurrent Filters: " + filters.getFilterDescription());
+
+		StringBuilder sql = new StringBuilder(
+				"SELECT COUNT(*) as row_count, SUM(loan_amount_000s) as total_loan_amount " +
+						"FROM preliminary WHERE action_taken = 1");
+
+		List<Object> params = new ArrayList<>(); // Create params list
+		appendFilterConditions(sql, params, filters); // Pass params list to method
+
+		try (Connection conn = DriverManager.getConnection(
+				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password");
+				PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+			// Set all parameters
+			for (int i = 0; i < params.size(); i++) {
+				stmt.setObject(i + 1, params.get(i));
+			}
+
+			ResultSet rs = stmt.executeQuery();
+			if (rs.next()) {
+				System.out.println("Matching rows: " + rs.getInt("row_count"));
+				System.out.println("Total loan amount: $" + rs.getLong("total_loan_amount") + "000");
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static void addFilter(Scanner scanner, LoanFilters filters) {
+		while (true) {
+			System.out.println("\nAvailable filter types (enter multiple numbers separated by commas, or 'done' to finish):");
+			System.out.println("1. MSAMD");
+			System.out.println("2. Income/Debt Ratio");
+			System.out.println("3. County");
+			System.out.println("4. Loan Type");
+			System.out.println("5. Tract to MSAMD Income");
+			System.out.println("6. Loan Purpose");
+			System.out.println("7. Property Type");
+			System.out.println("8. Purchaser Type");
+			System.out.println("9. Owner Occupancy");
+
+			System.out.print("\nSelect filter types (e.g., '1,3,4' or 'done'): ");
+			String input = scanner.nextLine().trim().toLowerCase();
+
+			if (input.equals("done")) {
+				break;
+			}
+
+			String[] choices = input.split(",");
+			for (String filterChoice : choices) {
+				filterChoice = filterChoice.trim();
+				switch (filterChoice) {
+					case "1":
+						System.out.print("Enter MSAMD code (or press Enter to skip): ");
+						String msamdInput = scanner.nextLine().trim();
+						if (!msamdInput.isEmpty()) {
+							filters.msamdList.add(Integer.parseInt(msamdInput));
+						}
+						break;
+					case "2":
+						System.out.println("Income to Debt Ratio Filter");
+						System.out.print("Enter minimum ratio (or press Enter to skip): ");
+						String minInput = scanner.nextLine();
+						if (!minInput.trim().isEmpty()) {
+							try {
+								double minRatio = Double.parseDouble(minInput);
+								filters.minIncomeDebtRatio = minRatio;
+							} catch (NumberFormatException e) {
+								System.out.println("Invalid number format. Minimum ratio not set.");
+							}
+						}
+
+						System.out.print("Enter maximum ratio (or press Enter to skip): ");
+						String maxInput = scanner.nextLine();
+						if (!maxInput.trim().isEmpty()) {
+							try {
+								double maxRatio = Double.parseDouble(maxInput);
+								filters.maxIncomeDebtRatio = maxRatio;
+							} catch (NumberFormatException e) {
+								System.out.println("Invalid number format. Maximum ratio not set.");
+							}
+						}
+						break;
+					case "3":
+						System.out.println("County Filter");
+						System.out.println("Available counties:");
+						try (Connection conn = DriverManager.getConnection(
+								"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
+							Statement stmt = conn.createStatement();
+							ResultSet rs = stmt.executeQuery("SELECT DISTINCT county_name FROM preliminary ORDER BY county_name");
+							while (rs.next()) {
+								System.out.println("- " + rs.getString("county_name"));
+							}
+							System.out.print("Enter county name (or press Enter to skip): ");
+							String county = scanner.nextLine().trim();
+							if (!county.isEmpty()) {
+								filters.countyList.add(county);
+							}
+						} catch (SQLException e) {
+							System.out.println("Error fetching counties: " + e.getMessage());
+						}
+						break;
+					case "4":
+						System.out.println("Loan Type Filter");
+						System.out.println("Available loan types:");
+						try (Connection conn = DriverManager.getConnection(
+								"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
+							Statement stmt = conn.createStatement();
+							ResultSet rs = stmt
+									.executeQuery("SELECT DISTINCT loan_type, loan_type_name FROM preliminary ORDER BY loan_type");
+							while (rs.next()) {
+								System.out.println(rs.getInt("loan_type") + ": " + rs.getString("loan_type_name"));
+							}
+							System.out.print("Enter loan type code (or press Enter to skip): ");
+							String loanType = scanner.nextLine().trim();
+							if (!loanType.isEmpty()) {
+								filters.loanTypeList.add(Integer.parseInt(loanType));
+							}
+						} catch (SQLException e) {
+							System.out.println("Error fetching loan types: " + e.getMessage());
+						}
+						break;
+					case "5":
+						System.out.println("Tract to MSAMD Income Filter");
+						System.out.print("Enter minimum tract/MSAMD income ratio (or press Enter to skip): ");
+						String minIncome = scanner.nextLine();
+						if (!minIncome.trim().isEmpty()) {
+							try {
+								double min = Double.parseDouble(minIncome);
+								filters.minTractMsamdIncome = min;
+							} catch (NumberFormatException e) {
+								System.out.println("Invalid number format. Minimum income ratio not set.");
+							}
+						}
+
+						System.out.print("Enter maximum tract/MSAMD income ratio (or press Enter to skip): ");
+						String maxIncome = scanner.nextLine();
+						if (!maxIncome.trim().isEmpty()) {
+							try {
+								double max = Double.parseDouble(maxIncome);
+								filters.maxTractMsamdIncome = max;
+							} catch (NumberFormatException e) {
+								System.out.println("Invalid number format. Maximum income ratio not set.");
+							}
+						}
+						break;
+					case "6":
+						System.out.println("Loan Purpose Filter");
+						System.out.println("Available loan purposes:");
+						try (Connection conn = DriverManager.getConnection(
+								"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
+							Statement stmt = conn.createStatement();
+							ResultSet rs = stmt.executeQuery(
+									"SELECT DISTINCT loan_purpose, loan_purpose_name FROM preliminary ORDER BY loan_purpose");
+							while (rs.next()) {
+								System.out.println(rs.getInt("loan_purpose") + ": " + rs.getString("loan_purpose_name"));
+							}
+							System.out.print("Enter loan purpose code (or press Enter to skip): ");
+							String loanPurpose = scanner.nextLine().trim();
+							if (!loanPurpose.isEmpty()) {
+								filters.loanPurposeList.add(Integer.parseInt(loanPurpose));
+							}
+						} catch (SQLException e) {
+							System.out.println("Error fetching loan purposes: " + e.getMessage());
+						}
+						break;
+					case "7":
+						System.out.println("Property Type Filter");
+						System.out.println("Available property types:");
+						try (Connection conn = DriverManager.getConnection(
+								"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
+							Statement stmt = conn.createStatement();
+							ResultSet rs = stmt.executeQuery(
+									"SELECT DISTINCT property_type, property_type_name FROM preliminary ORDER BY property_type");
+							while (rs.next()) {
+								System.out.println(rs.getInt("property_type") + ": " + rs.getString("property_type_name"));
+							}
+							System.out.print("Enter property type code (or press Enter to skip): ");
+							String propertyType = scanner.nextLine().trim();
+							if (!propertyType.isEmpty()) {
+								filters.propertyTypeList.add(Integer.parseInt(propertyType));
+							}
+						} catch (SQLException e) {
+							System.out.println("Error fetching property types: " + e.getMessage());
+						}
+						break;
+					case "8":
+						System.out.println("Purchaser Type Filter");
+						System.out.println("Available purchaser types:");
+						System.out.println("1. Fannie Mae (FNMA)");
+						System.out.println("2. Ginnie Mae (GNMA)");
+						System.out.println("3. Freddie Mac (FHLMC)");
+						System.out.println("4. Farmer Mac (FAMC)");
+						System.out.println("5. Affiliate institution");
+
+						System.out.print("Enter choice (1-5, or press Enter to skip): ");
+						String choice = scanner.nextLine().trim();
+						if (!choice.isEmpty()) {
+							switch (choice) {
+								case "1":
+									filters.purchaserTypeFilter = "Fannie Mae (FNMA)";
+									break;
+								case "2":
+									filters.purchaserTypeFilter = "Ginnie Mae (GNMA)";
+									break;
+								case "3":
+									filters.purchaserTypeFilter = "Freddie Mac (FHLMC)";
+									break;
+								case "4":
+									filters.purchaserTypeFilter = "Farmer Mac (FAMC)";
+									break;
+								case "5":
+									filters.purchaserTypeFilter = "Affiliate institution";
+									break;
+								default:
+									System.out.println("Invalid choice. Purchaser type not set.");
+							}
+						}
+						break;
+					case "9":
+						System.out.println("Owner Occupancy Filter");
+						System.out.println("Available owner occupancy types:");
+						try (Connection conn = DriverManager.getConnection(
+								"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
+							Statement stmt = conn.createStatement();
+							ResultSet rs = stmt.executeQuery(
+									"SELECT DISTINCT owner_occupancy, owner_occupancy_name FROM preliminary ORDER BY owner_occupancy");
+							while (rs.next()) {
+								System.out.println(rs.getInt("owner_occupancy") + ": " + rs.getString("owner_occupancy_name"));
+							}
+							System.out.print("Enter owner occupancy code (or press Enter to skip): ");
+							String occupancy = scanner.nextLine().trim();
+							if (!occupancy.isEmpty()) {
+								filters.ownerOccupancyList.add(Integer.parseInt(occupancy));
+							}
+						} catch (SQLException e) {
+							System.out.println("Error fetching owner occupancy types: " + e.getMessage());
+						}
+						break;
+					default:
+						System.out.println("Invalid filter type: " + filterChoice);
+				}
+			}
+		}
+	}
+
+	private static void deleteFilter(Scanner scanner, LoanFilters filters) {
+		System.out.println("\nCurrent filters:");
+		System.out.println("0. Delete ALL filters");
+
+		// Create a list to track which filters are actually active
+		List<String> activeFilters = new ArrayList<>();
+
+		// Only show filters that are actually set
+		if (!filters.msamdList.isEmpty()) {
+			activeFilters.add("1. MSAMD filters: " + filters.msamdList);
+		}
+		if (filters.minIncomeDebtRatio != null || filters.maxIncomeDebtRatio != null) {
+			String ratioFilter = "2. Income/Debt Ratio filters: ";
+			if (filters.minIncomeDebtRatio != null) {
+				ratioFilter += "min=" + filters.minIncomeDebtRatio;
+			}
+			if (filters.maxIncomeDebtRatio != null) {
+				ratioFilter += " max=" + filters.maxIncomeDebtRatio;
+			}
+			activeFilters.add(ratioFilter);
+		}
+		if (!filters.countyList.isEmpty()) {
+			activeFilters.add("3. County filters: " + filters.countyList);
+		}
+		if (!filters.loanTypeList.isEmpty()) {
+			activeFilters.add("4. Loan Type filters: " + filters.loanTypeList);
+		}
+		if (filters.minTractMsamdIncome != null || filters.maxTractMsamdIncome != null) {
+			String incomeFilter = "5. Tract/MSAMD Income filters: ";
+			if (filters.minTractMsamdIncome != null) {
+				incomeFilter += "min=" + filters.minTractMsamdIncome;
+			}
+			if (filters.maxTractMsamdIncome != null) {
+				incomeFilter += " max=" + filters.maxTractMsamdIncome;
+			}
+			activeFilters.add(incomeFilter);
+		}
+		if (!filters.loanPurposeList.isEmpty()) {
+			activeFilters.add("6. Loan Purpose filters: " + filters.loanPurposeList);
+		}
+		if (!filters.propertyTypeList.isEmpty()) {
+			activeFilters.add("7. Property Type filters: " + filters.propertyTypeList);
+		}
+		if (filters.purchaserTypeFilter != null) {
+			activeFilters.add("8. Purchaser Type filter: " + filters.purchaserTypeFilter);
+		}
+		if (!filters.ownerOccupancyList.isEmpty()) {
+			activeFilters.add("9. Owner Occupancy filters: " + filters.ownerOccupancyList);
+		}
+
+		// Display message if no filters are active
+		if (activeFilters.isEmpty()) {
+			System.out.println("No active filters to delete.");
+			return;
+		}
+
+		// Display active filters
+		for (String filter : activeFilters) {
+			System.out.println(filter);
+		}
+
+		System.out.print("\nSelect filter to delete (0-9): ");
+		String deleteChoice = scanner.nextLine();
+
+		switch (deleteChoice) {
+			case "0":
+				filters.clearAllFilters();
+				System.out.println("All filters cleared.");
+				break;
+			case "1":
+				if (!filters.msamdList.isEmpty()) {
+					filters.msamdList.clear();
+					System.out.println("MSAMD filters cleared.");
+				}
+				break;
+			case "2":
+				if (filters.minIncomeDebtRatio != null || filters.maxIncomeDebtRatio != null) {
+					filters.minIncomeDebtRatio = null;
+					filters.maxIncomeDebtRatio = null;
+					System.out.println("Income/Debt Ratio filters cleared.");
+				}
+				break;
+			case "3":
+				if (!filters.countyList.isEmpty()) {
+					filters.countyList.clear();
+					System.out.println("County filters cleared.");
+				}
+				break;
+			case "4":
+				if (!filters.loanTypeList.isEmpty()) {
+					filters.loanTypeList.clear();
+					System.out.println("Loan Type filters cleared.");
+				}
+				break;
+			case "5":
+				if (filters.minTractMsamdIncome != null || filters.maxTractMsamdIncome != null) {
+					filters.minTractMsamdIncome = null;
+					filters.maxTractMsamdIncome = null;
+					System.out.println("Tract to MSAMD Income filters cleared.");
+				}
+				break;
+			case "6":
+				if (!filters.loanPurposeList.isEmpty()) {
+					filters.loanPurposeList.clear();
+					System.out.println("Loan Purpose filters cleared.");
+				}
+				break;
+			case "7":
+				if (!filters.propertyTypeList.isEmpty()) {
+					filters.propertyTypeList.clear();
+					System.out.println("Property Type filters cleared.");
+				}
+				break;
+			case "8":
+				if (filters.purchaserTypeFilter != null) {
+					filters.purchaserTypeFilter = null;
+					System.out.println("Purchaser Type filter cleared.");
+				}
+				break;
+			case "9":
+				if (!filters.ownerOccupancyList.isEmpty()) {
+					filters.ownerOccupancyList.clear();
+					System.out.println("Owner Occupancy filters cleared.");
+				}
+				break;
+			default:
+				System.out.println("Invalid choice. No filters deleted.");
+		}
+	}
+
+	private static void calculateRate(LoanFilters filters) {
+		System.out.println("\nCalculating rate for current filters...");
+
+		StringBuilder sql = new StringBuilder(
+				"SELECT lien_status, rate_spread, loan_amount_000s FROM preliminary WHERE action_taken = 1");
+
+		List<Object> params = new ArrayList<>();
+		appendFilterConditions(sql, params, filters);
+
+		double totalWeightedRate = 0;
+		double totalLoanAmount = 0;
+		double baseRate = 2.33; // Base APR
+
+		try (Connection conn = DriverManager.getConnection(
+				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password");
+				PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+			// Set all parameters
+			for (int i = 0; i < params.size(); i++) {
+				stmt.setObject(i + 1, params.get(i));
+			}
+
+			ResultSet rs = stmt.executeQuery();
+
+			while (rs.next()) {
+				int lienStatus = rs.getInt("lien_status");
+				double rateSpread = rs.getDouble("rate_spread");
+				double loanAmount = rs.getDouble("loan_amount_000s") * 1000; // Convert to actual amount
+
+				// Calculate effective rate spread based on rules
+				double effectiveRateSpread;
+				if (rateSpread == 0) { // Assuming 0 means unknown/NA
+					if (lienStatus == 1) {
+						effectiveRateSpread = 1.5;
+					} else if (lienStatus == 2) {
+						effectiveRateSpread = 3.5;
+					} else {
+						effectiveRateSpread = 3.5; // Default to higher spread if lien status unknown
+					}
+				} else {
+					effectiveRateSpread = rateSpread;
+				}
+
+				// Calculate total rate for this loan
+				double totalRate = baseRate + effectiveRateSpread;
+
+				// Add to weighted average calculation
+				totalWeightedRate += (totalRate * loanAmount);
+				totalLoanAmount += loanAmount;
+			}
+
+			if (totalLoanAmount == 0) {
+				System.out.println("No matching loans found.");
+				return;
+			}
+
+			// Calculate final weighted average rate
+			double finalRate = totalWeightedRate / totalLoanAmount;
+
+			// Display results
+			System.out.printf("\nSecuritization Summary:");
+			System.out.println("\nTotal Cost of Securitization: $" + Math.round(totalLoanAmount));
+			System.out.printf("\nWeighted Average Rate: %.2f%%", finalRate);
+
+			// Ask for user decision
+			Scanner scanner = new Scanner(System.in);
+			System.out.print("\n\nDo you accept this rate and cost? (yes/no): ");
+			String decision = scanner.nextLine().toLowerCase();
+
+			if (decision.equals("yes")) {
+				// Update purchaser_type to private securitization
+				try {
+					StringBuilder updateSql = new StringBuilder(
+							"UPDATE preliminary SET purchaser_type = 1 WHERE action_taken = 1");
+					appendFilterConditions(updateSql, params, filters);
+
+					PreparedStatement updateStmt = conn.prepareStatement(updateSql.toString());
+					for (int i = 0; i < params.size(); i++) {
+						updateStmt.setObject(i + 1, params.get(i));
+					}
+
+					int updatedRows = updateStmt.executeUpdate();
+					System.out.printf("\nSuccessfully updated %d loans to private securitization.", updatedRows);
+					System.out.println("\nProgram complete. Exiting...");
+					System.exit(0);
+
+				} catch (SQLException e) {
+					System.out.println("Failed to update loans: " + e.getMessage());
+					System.out.println("Returning to main menu...");
+				}
+			} else {
+				System.out.println("Rate declined. Returning to main menu...");
+			}
+
+		} catch (SQLException e) {
+			System.out.println("Error calculating rate: " + e.getMessage());
+		}
+	}
+
+	private static void appendFilterConditions(StringBuilder sql, List<Object> params, LoanFilters filters) {
+		// Add MSAMD filter
+		if (!filters.msamdList.isEmpty()) {
+			sql.append(" AND msamd IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.msamdList.size(), "?")));
+			sql.append(")");
+			params.addAll(filters.msamdList);
+		}
+
+		// Fixed income/debt ratio filter to match SQL behavior
+		if (filters.minIncomeDebtRatio != null) {
+			sql.append(" AND (applicant_income_000s / loan_amount_000s) >= ?");
+			params.add(filters.minIncomeDebtRatio);
+		}
+		if (filters.maxIncomeDebtRatio != null) {
+			sql.append(" AND (applicant_income_000s / loan_amount_000s) <= ?");
+			params.add(filters.maxIncomeDebtRatio);
+		}
+
+		// Rest of the filters remain the same...
+		if (!filters.countyList.isEmpty()) {
+			sql.append(" AND county_name IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.countyList.size(), "?")));
+			sql.append(")");
+			params.addAll(filters.countyList);
+		}
+
+		if (!filters.loanTypeList.isEmpty()) {
+			sql.append(" AND loan_type IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.loanTypeList.size(), "?")));
+			sql.append(")");
+			params.addAll(filters.loanTypeList);
+		}
+
+		if (!filters.loanPurposeList.isEmpty()) {
+			sql.append(" AND loan_purpose IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.loanPurposeList.size(), "?")));
+			sql.append(")");
+			params.addAll(filters.loanPurposeList);
+		}
+
+		if (!filters.propertyTypeList.isEmpty()) {
+			sql.append(" AND property_type IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.propertyTypeList.size(), "?")));
+			sql.append(")");
+			params.addAll(filters.propertyTypeList);
+		}
+
+		if (filters.purchaserTypeFilter != null) {
+			sql.append(" AND purchaser_type_name = ?");
+			params.add(filters.purchaserTypeFilter);
+		}
+
+		if (!filters.ownerOccupancyList.isEmpty()) {
+			sql.append(" AND owner_occupancy IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.ownerOccupancyList.size(), "?")));
+			sql.append(")");
+			params.addAll(filters.ownerOccupancyList);
+		}
+
+		// Add tract to MSAMD income filter if specified
+		if (filters.minTractMsamdIncome != null) {
+			sql.append(" AND tract_to_msamd_income >= ?");
+			params.add(filters.minTractMsamdIncome);
+		}
+		if (filters.maxTractMsamdIncome != null) {
+			sql.append(" AND tract_to_msamd_income <= ?");
+			params.add(filters.maxTractMsamdIncome);
+		}
+	}
+}
