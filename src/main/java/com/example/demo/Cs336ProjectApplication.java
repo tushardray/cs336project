@@ -114,9 +114,10 @@ public class Cs336ProjectApplication {
 			System.out.println("1. Add filter");
 			System.out.println("2. Delete filter");
 			System.out.println("3. Calculate rate");
-			System.out.println("4. Exit");
+			System.out.println("4. Add new mortgage"); // Add this line
+			System.out.println("5. Exit"); // Change this to option 5
 
-			System.out.print("\nEnter your choice (1-4): ");
+			System.out.print("\nEnter your choice (1-5): "); // Update the range
 			String choice = scanner.nextLine();
 
 			switch (choice) {
@@ -129,7 +130,10 @@ public class Cs336ProjectApplication {
 				case "3":
 					calculateRate(filters);
 					break;
-				case "4":
+				case "4": // Add this case
+					addNewMortgage(scanner);
+					break;
+				case "5": // Update this case number
 					System.out.println("Goodbye!");
 					scanner.close();
 					System.exit(0);
@@ -146,8 +150,8 @@ public class Cs336ProjectApplication {
 				"SELECT COUNT(*) as row_count, SUM(loan_amount_000s) as total_loan_amount " +
 						"FROM preliminary WHERE action_taken = 1");
 
-		List<Object> params = new ArrayList<>(); 
-		appendFilterConditions(sql, params, filters); 
+		List<Object> params = new ArrayList<>();
+		appendFilterConditions(sql, params, filters);
 
 		try (Connection conn = DriverManager.getConnection(
 				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password");
@@ -522,7 +526,7 @@ public class Cs336ProjectApplication {
 
 		double totalWeightedRate = 0;
 		double totalLoanAmount = 0;
-		double baseRate = 2.33; 
+		double baseRate = 2.33;
 
 		try (Connection conn = DriverManager.getConnection(
 				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password");
@@ -537,16 +541,16 @@ public class Cs336ProjectApplication {
 			while (rs.next()) {
 				int lienStatus = rs.getInt("lien_status");
 				double rateSpread = rs.getDouble("rate_spread");
-				double loanAmount = rs.getDouble("loan_amount_000s") * 1000; 
+				double loanAmount = rs.getDouble("loan_amount_000s") * 1000;
 
 				double effectiveRateSpread;
-				if (rateSpread == 0) { 
+				if (rateSpread == 0) {
 					if (lienStatus == 1) {
 						effectiveRateSpread = 1.5;
 					} else if (lienStatus == 2) {
 						effectiveRateSpread = 3.5;
 					} else {
-						effectiveRateSpread = 3.5; 
+						effectiveRateSpread = 3.5;
 					}
 				} else {
 					effectiveRateSpread = rateSpread;
@@ -666,6 +670,200 @@ public class Cs336ProjectApplication {
 		if (filters.maxTractMsamdIncome != null) {
 			sql.append(" AND tract_to_msamd_income <= ?");
 			params.add(filters.maxTractMsamdIncome);
+		}
+	}
+
+	private static void addNewMortgage(Scanner scanner) {
+		Map<String, Object> mortgageData = new HashMap<>();
+		boolean isComplete = false;
+
+		while (!isComplete) {
+			System.out.println("\nSelect information to add (or 'done' when finished):");
+			System.out.println("1. Income");
+			System.out.println("2. Loan Amount");
+			System.out.println("3. MSAMD");
+			System.out.println("4. Applicant Sex");
+			System.out.println("5. Loan Type");
+			System.out.println("6. Ethnicity");
+			System.out.println("Type 'done' to finish");
+
+			System.out.print("\nEnter choice: ");
+			String choice = scanner.nextLine().trim();
+
+			if (choice.equalsIgnoreCase("done")) {
+				if (mortgageData.size() == 6) {
+					isComplete = true;
+					continue;
+				} else {
+					System.out.println("Please complete all required fields before proceeding.");
+					continue;
+				}
+			}
+
+			switch (choice) {
+				case "1":
+					System.out.print("Enter income (in thousands): ");
+					try {
+						int income = Integer.parseInt(scanner.nextLine().trim());
+						mortgageData.put("applicant_income_000s", income);
+					} catch (NumberFormatException e) {
+						System.out.println("Invalid input. Please enter a number.");
+					}
+					break;
+
+				case "2":
+					System.out.print("Enter loan amount (in thousands): ");
+					try {
+						int loanAmount = Integer.parseInt(scanner.nextLine().trim());
+						mortgageData.put("loan_amount_000s", loanAmount);
+					} catch (NumberFormatException e) {
+						System.out.println("Invalid input. Please enter a number.");
+					}
+					break;
+
+				case "3":
+					try (Connection conn = DriverManager.getConnection(
+							"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
+						Statement stmt = conn.createStatement();
+						ResultSet rs = stmt.executeQuery(
+								"SELECT DISTINCT msamd, msamd_name FROM preliminary " +
+										"WHERE msamd IS NOT NULL AND msamd_name IS NOT NULL " +
+										"ORDER BY msamd");
+						System.out.println("\nAvailable MSAMDs:");
+						while (rs.next()) {
+							System.out.println(rs.getInt("msamd") + ": " + rs.getString("msamd_name"));
+						}
+						System.out.print("Enter MSAMD code: ");
+						int msamd = Integer.parseInt(scanner.nextLine().trim());
+						mortgageData.put("msamd", msamd);
+					} catch (SQLException e) {
+						System.out.println("Error fetching MSAMDs: " + e.getMessage());
+					}
+					break;
+
+				case "4":
+					System.out.println("\nApplicant Sex Options:");
+					System.out.println("1: Male");
+					System.out.println("2: Female");
+					System.out.println("3: Information not provided");
+					System.out.println("4: Not applicable");
+					System.out.print("Enter choice (1-4): ");
+					try {
+						int sex = Integer.parseInt(scanner.nextLine().trim());
+						if (sex >= 1 && sex <= 4) {
+							mortgageData.put("applicant_sex", sex);
+						} else {
+							System.out.println("Invalid choice.");
+						}
+					} catch (NumberFormatException e) {
+						System.out.println("Invalid input. Please enter a number.");
+					}
+					break;
+
+				case "5":
+					try (Connection conn = DriverManager.getConnection(
+							"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
+						Statement stmt = conn.createStatement();
+						ResultSet rs = stmt.executeQuery(
+								"SELECT DISTINCT loan_type, loan_type_name FROM preliminary " +
+										"WHERE loan_type_name IS NOT NULL " +
+										"GROUP BY loan_type, loan_type_name " +
+										"ORDER BY loan_type");
+						System.out.println("\nAvailable loan types:");
+						while (rs.next()) {
+							System.out.println(rs.getInt("loan_type") + ": " + rs.getString("loan_type_name"));
+						}
+						System.out.print("Enter loan type code: ");
+						String loanTypeStr = scanner.nextLine().trim();
+						if (!loanTypeStr.isEmpty()) {
+							int loanType = Integer.parseInt(loanTypeStr);
+							stmt = conn.createStatement();
+							rs = stmt.executeQuery(
+									"SELECT loan_type FROM preliminary " +
+											"WHERE loan_type = " + loanType + " AND loan_type_name IS NOT NULL " +
+											"LIMIT 1");
+							if (rs.next()) {
+								mortgageData.put("loan_type", loanType);
+							} else {
+								System.out.println("Invalid loan type code.");
+							}
+						}
+					} catch (SQLException e) {
+						System.out.println("Error fetching loan types: " + e.getMessage());
+					}
+					break;
+
+				case "6":
+					System.out.println("\nEthnicity Options:");
+					System.out.println("1: Hispanic or Latino");
+					System.out.println("2: Not Hispanic or Latino");
+					System.out.println("3: Information not provided");
+					System.out.println("4: Not applicable");
+					System.out.print("Enter choice (1-4): ");
+					try {
+						int ethnicity = Integer.parseInt(scanner.nextLine().trim());
+						if (ethnicity >= 1 && ethnicity <= 4) {
+							mortgageData.put("applicant_ethnicity", ethnicity);
+						} else {
+							System.out.println("Invalid choice.");
+						}
+					} catch (NumberFormatException e) {
+						System.out.println("Invalid input. Please enter a number.");
+					}
+					break;
+
+				default:
+					System.out.println("Invalid choice. Please try again.");
+			}
+		}
+
+		try (Connection conn = DriverManager.getConnection(
+				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
+
+			PreparedStatement locationStmt = conn.prepareStatement(
+					"SELECT state_code, county_code, census_tract_number FROM preliminary " +
+							"WHERE msamd = ? AND state_code IS NOT NULL AND county_code IS NOT NULL " +
+							"LIMIT 1");
+			locationStmt.setInt(1, (Integer) mortgageData.get("msamd"));
+			ResultSet locationRs = locationStmt.executeQuery();
+
+			if (locationRs.next()) {
+				mortgageData.put("state_code", locationRs.getInt("state_code"));
+				mortgageData.put("county_code", locationRs.getInt("county_code"));
+				mortgageData.put("census_tract_number", locationRs.getInt("census_tract_number"));
+			}
+
+			mortgageData.put("action_taken", 1);
+
+			StringBuilder sql = new StringBuilder("INSERT INTO preliminary (");
+			StringBuilder values = new StringBuilder("VALUES (");
+			List<Object> params = new ArrayList<>();
+
+			for (Map.Entry<String, Object> entry : mortgageData.entrySet()) {
+				sql.append(entry.getKey()).append(", ");
+				values.append("?, ");
+				params.add(entry.getValue());
+			}
+
+			sql.setLength(sql.length() - 2);
+			values.setLength(values.length() - 2);
+
+			sql.append(") ").append(values).append(")");
+
+			PreparedStatement pstmt = conn.prepareStatement(sql.toString());
+			for (int i = 0; i < params.size(); i++) {
+				pstmt.setObject(i + 1, params.get(i));
+			}
+
+			int result = pstmt.executeUpdate();
+			if (result > 0) {
+				System.out.println("New mortgage successfully added to the database!");
+			} else {
+				System.out.println("Failed to add new mortgage.");
+			}
+
+		} catch (SQLException e) {
+			System.out.println("Error adding new mortgage: " + e.getMessage());
 		}
 	}
 }
