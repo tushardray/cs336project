@@ -154,7 +154,7 @@ public class Cs336ProjectApplication {
 		appendFilterConditions(sql, params, filters);
 
 		try (Connection conn = DriverManager.getConnection(
-				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password");
+				"jdbc:postgresql://localhost:5433/postgres", "postgres", "Test1234*");
 				PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
 
 			for (int i = 0; i < params.size(); i++) {
