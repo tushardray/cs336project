@@ -13,7 +13,7 @@ function App() {
 
       <h3>Choose an initial option:</h3>
       
-      <form onSubmit={}>
+      <form>
         <input type={"radio"} id={"addFilter"}></input>
         <label for={"addFilter"}> Add Filter</label> <br></br> <br></br>
 
