@@ -2,23 +2,122 @@ package com.example.demo;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
 import java.sql.*;
 import java.util.*;
 
 @SpringBootApplication
+@RestController
+@CrossOrigin(origins = "*")
+@RequestMapping("/api")
 public class Cs336ProjectApplication {
+
 	public static class LoanFilters {
-		Set<Integer> msamdList = new HashSet<>();
-		Double minIncomeDebtRatio = null;
-		Double maxIncomeDebtRatio = null;
-		Set<String> countyList = new HashSet<>();
-		Set<Integer> loanTypeList = new HashSet<>();
-		Double minTractMsamdIncome = null;
-		Double maxTractMsamdIncome = null;
-		Set<Integer> loanPurposeList = new HashSet<>();
-		Set<Integer> propertyTypeList = new HashSet<>();
-		String purchaserTypeFilter = null;
-		Set<Integer> ownerOccupancyList = new HashSet<>();
+		private Set<Integer> msamdList = new HashSet<>();
+		private Double minIncomeDebtRatio;
+		private Double maxIncomeDebtRatio;
+		private Set<String> countyList = new HashSet<>();
+		private Set<Integer> loanTypeList = new HashSet<>();
+		private Double minTractMsamdIncome;
+		private Double maxTractMsamdIncome;
+		private Set<Integer> loanPurposeList = new HashSet<>();
+		private Set<Integer> propertyTypeList = new HashSet<>();
+		private String purchaserTypeFilter;
+		private Set<Integer> ownerOccupancyList = new HashSet<>();
+
+		// Default constructor
+		public LoanFilters() {
+		}
+
+		// Getters and setters
+		public Set<Integer> getMsamdList() {
+			return msamdList;
+		}
+
+		public void setMsamdList(Set<Integer> msamdList) {
+			this.msamdList = msamdList;
+		}
+
+		public Double getMinIncomeDebtRatio() {
+			return minIncomeDebtRatio;
+		}
+
+		public void setMinIncomeDebtRatio(Double minIncomeDebtRatio) {
+			this.minIncomeDebtRatio = minIncomeDebtRatio;
+		}
+
+		public Double getMaxIncomeDebtRatio() {
+			return maxIncomeDebtRatio;
+		}
+
+		public void setMaxIncomeDebtRatio(Double maxIncomeDebtRatio) {
+			this.maxIncomeDebtRatio = maxIncomeDebtRatio;
+		}
+
+		public Set<String> getCountyList() {
+			return countyList;
+		}
+
+		public void setCountyList(Set<String> countyList) {
+			this.countyList = countyList;
+		}
+
+		public Set<Integer> getLoanTypeList() {
+			return loanTypeList;
+		}
+
+		public void setLoanTypeList(Set<Integer> loanTypeList) {
+			this.loanTypeList = loanTypeList;
+		}
+
+		public Double getMinTractMsamdIncome() {
+			return minTractMsamdIncome;
+		}
+
+		public void setMinTractMsamdIncome(Double minTractMsamdIncome) {
+			this.minTractMsamdIncome = minTractMsamdIncome;
+		}
+
+		public Double getMaxTractMsamdIncome() {
+			return maxTractMsamdIncome;
+		}
+
+		public void setMaxTractMsamdIncome(Double maxTractMsamdIncome) {
+			this.maxTractMsamdIncome = maxTractMsamdIncome;
+		}
+
+		public Set<Integer> getLoanPurposeList() {
+			return loanPurposeList;
+		}
+
+		public void setLoanPurposeList(Set<Integer> loanPurposeList) {
+			this.loanPurposeList = loanPurposeList;
+		}
+
+		public Set<Integer> getPropertyTypeList() {
+			return propertyTypeList;
+		}
+
+		public void setPropertyTypeList(Set<Integer> propertyTypeList) {
+			this.propertyTypeList = propertyTypeList;
+		}
+
+		public String getPurchaserTypeFilter() {
+			return purchaserTypeFilter;
+		}
+
+		public void setPurchaserTypeFilter(String purchaserTypeFilter) {
+			this.purchaserTypeFilter = purchaserTypeFilter;
+		}
+
+		public Set<Integer> getOwnerOccupancyList() {
+			return ownerOccupancyList;
+		}
+
+		public void setOwnerOccupancyList(Set<Integer> ownerOccupancyList) {
+			this.ownerOccupancyList = ownerOccupancyList;
+		}
 
 		public String getFilterDescription() {
 			List<String> activeFilters = new ArrayList<>();
@@ -103,48 +202,78 @@ public class Cs336ProjectApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(Cs336ProjectApplication.class, args);
+	}
 
-		LoanFilters filters = new LoanFilters();
-		Scanner scanner = new Scanner(System.in);
+	private static void appendFilterConditions(StringBuilder sql, List<Object> params, LoanFilters filters) {
+		if (!filters.getMsamdList().isEmpty()) {
+			sql.append(" AND msamd IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.getMsamdList().size(), "?")));
+			sql.append(")");
+			params.addAll(filters.getMsamdList());
+		}
 
-		while (true) {
-			displayFilterStats(filters);
+		if (filters.getMinIncomeDebtRatio() != null) {
+			sql.append(" AND (applicant_income_000s / loan_amount_000s) >= ?");
+			params.add(filters.getMinIncomeDebtRatio());
+		}
+		if (filters.getMaxIncomeDebtRatio() != null) {
+			sql.append(" AND (applicant_income_000s / loan_amount_000s) <= ?");
+			params.add(filters.getMaxIncomeDebtRatio());
+		}
 
-			System.out.println("\nPlease choose an option:");
-			System.out.println("1. Add filter");
-			System.out.println("2. Delete filter");
-			System.out.println("3. Calculate rate");
-			System.out.println("4. Add new mortgage"); // Add this line
-			System.out.println("5. Exit"); // Change this to option 5
+		if (!filters.getCountyList().isEmpty()) {
+			sql.append(" AND county_name IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.getCountyList().size(), "?")));
+			sql.append(")");
+			params.addAll(filters.getCountyList());
+		}
 
-			System.out.print("\nEnter your choice (1-5): "); // Update the range
-			String choice = scanner.nextLine();
+		if (!filters.getLoanTypeList().isEmpty()) {
+			sql.append(" AND loan_type IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.getLoanTypeList().size(), "?")));
+			sql.append(")");
+			params.addAll(filters.getLoanTypeList());
+		}
 
-			switch (choice) {
-				case "1":
-					addFilter(scanner, filters);
-					break;
-				case "2":
-					deleteFilter(scanner, filters);
-					break;
-				case "3":
-					calculateRate(filters);
-					break;
-				case "4": // Add this case
-					addNewMortgage(scanner);
-					break;
-				case "5": // Update this case number
-					System.out.println("Goodbye!");
-					scanner.close();
-					System.exit(0);
-				default:
-					System.out.println("Invalid choice. Please try again.");
-			}
+		if (!filters.getLoanPurposeList().isEmpty()) {
+			sql.append(" AND loan_purpose IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.getLoanPurposeList().size(), "?")));
+			sql.append(")");
+			params.addAll(filters.getLoanPurposeList());
+		}
+
+		if (!filters.getPropertyTypeList().isEmpty()) {
+			sql.append(" AND property_type IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.getPropertyTypeList().size(), "?")));
+			sql.append(")");
+			params.addAll(filters.getPropertyTypeList());
+		}
+
+		if (filters.getPurchaserTypeFilter() != null) {
+			sql.append(" AND purchaser_type_name = ?");
+			params.add(filters.getPurchaserTypeFilter());
+		}
+
+		if (!filters.getOwnerOccupancyList().isEmpty()) {
+			sql.append(" AND owner_occupancy IN (");
+			sql.append(String.join(",", Collections.nCopies(filters.getOwnerOccupancyList().size(), "?")));
+			sql.append(")");
+			params.addAll(filters.getOwnerOccupancyList());
+		}
+
+		if (filters.getMinTractMsamdIncome() != null) {
+			sql.append(" AND tract_to_msamd_income >= ?");
+			params.add(filters.getMinTractMsamdIncome());
+		}
+		if (filters.getMaxTractMsamdIncome() != null) {
+			sql.append(" AND tract_to_msamd_income <= ?");
+			params.add(filters.getMaxTractMsamdIncome());
 		}
 	}
 
-	private static void displayFilterStats(LoanFilters filters) {
-		System.out.println("\nCurrent Filters: " + filters.getFilterDescription());
+	@PostMapping("/stats")
+	public ResponseEntity<Map<String, Object>> getFilterStats(@RequestBody LoanFilters filters) {
+		Map<String, Object> response = new HashMap<>();
 
 		StringBuilder sql = new StringBuilder(
 				"SELECT COUNT(*) as row_count, SUM(loan_amount_000s) as total_loan_amount " +
@@ -163,360 +292,86 @@ public class Cs336ProjectApplication {
 
 			ResultSet rs = stmt.executeQuery();
 			if (rs.next()) {
-				System.out.println("Matching rows: " + rs.getInt("row_count"));
-				System.out.println("Total loan amount: $" + rs.getLong("total_loan_amount") + "000");
+				response.put("matchingRows", rs.getInt("row_count"));
+				response.put("totalLoanAmount", rs.getLong("total_loan_amount") * 1000);
+				response.put("activeFilters", filters.getFilterDescription());
 			}
+
+			return ResponseEntity.ok(response);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
 		}
 	}
 
-	private static void addFilter(Scanner scanner, LoanFilters filters) {
-		while (true) {
-			System.out.println("\nAvailable filter types (enter multiple numbers separated by commas, or 'done' to finish):");
-			System.out.println("1. MSAMD");
-			System.out.println("2. Income/Debt Ratio");
-			System.out.println("3. County");
-			System.out.println("4. Loan Type");
-			System.out.println("5. Tract to MSAMD Income");
-			System.out.println("6. Loan Purpose");
-			System.out.println("7. Property Type");
-			System.out.println("8. Purchaser Type");
-			System.out.println("9. Owner Occupancy");
+	@GetMapping("/filter-options")
+	public ResponseEntity<Map<String, Object>> getFilterOptions() {
+		Map<String, Object> options = new HashMap<>();
 
-			System.out.print("\nSelect filter types (e.g., '1,3,4' or 'done'): ");
-			String input = scanner.nextLine().trim().toLowerCase();
+		try (Connection conn = DriverManager.getConnection(
+				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
 
-			if (input.equals("done")) {
-				break;
+			// Fetch counties
+			List<Map<String, Object>> counties = new ArrayList<>();
+			ResultSet rs = conn.createStatement().executeQuery(
+					"SELECT DISTINCT county_name FROM preliminary ORDER BY county_name");
+			while (rs.next()) {
+				counties.add(Map.of("name", rs.getString("county_name")));
 			}
+			options.put("counties", counties);
 
-			String[] choices = input.split(",");
-			for (String filterChoice : choices) {
-				filterChoice = filterChoice.trim();
-				switch (filterChoice) {
-					case "1":
-						System.out.print("Enter MSAMD code (or press Enter to skip): ");
-						String msamdInput = scanner.nextLine().trim();
-						if (!msamdInput.isEmpty()) {
-							filters.msamdList.add(Integer.parseInt(msamdInput));
-						}
-						break;
-					case "2":
-						System.out.println("Income to Debt Ratio Filter");
-						System.out.print("Enter minimum ratio (or press Enter to skip): ");
-						String minInput = scanner.nextLine();
-						if (!minInput.trim().isEmpty()) {
-							try {
-								double minRatio = Double.parseDouble(minInput);
-								filters.minIncomeDebtRatio = minRatio;
-							} catch (NumberFormatException e) {
-								System.out.println("Invalid number format. Minimum ratio not set.");
-							}
-						}
-
-						System.out.print("Enter maximum ratio (or press Enter to skip): ");
-						String maxInput = scanner.nextLine();
-						if (!maxInput.trim().isEmpty()) {
-							try {
-								double maxRatio = Double.parseDouble(maxInput);
-								filters.maxIncomeDebtRatio = maxRatio;
-							} catch (NumberFormatException e) {
-								System.out.println("Invalid number format. Maximum ratio not set.");
-							}
-						}
-						break;
-					case "3":
-						System.out.println("County Filter");
-						System.out.println("Available counties:");
-						try (Connection conn = DriverManager.getConnection(
-								"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
-							Statement stmt = conn.createStatement();
-							ResultSet rs = stmt.executeQuery("SELECT DISTINCT county_name FROM preliminary ORDER BY county_name");
-							while (rs.next()) {
-								System.out.println("- " + rs.getString("county_name"));
-							}
-							System.out.print("Enter county name (or press Enter to skip): ");
-							String county = scanner.nextLine().trim();
-							if (!county.isEmpty()) {
-								filters.countyList.add(county);
-							}
-						} catch (SQLException e) {
-							System.out.println("Error fetching counties: " + e.getMessage());
-						}
-						break;
-					case "4":
-						System.out.println("Loan Type Filter");
-						System.out.println("Available loan types:");
-						try (Connection conn = DriverManager.getConnection(
-								"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
-							Statement stmt = conn.createStatement();
-							ResultSet rs = stmt
-									.executeQuery("SELECT DISTINCT loan_type, loan_type_name FROM preliminary ORDER BY loan_type");
-							while (rs.next()) {
-								System.out.println(rs.getInt("loan_type") + ": " + rs.getString("loan_type_name"));
-							}
-							System.out.print("Enter loan type code (or press Enter to skip): ");
-							String loanType = scanner.nextLine().trim();
-							if (!loanType.isEmpty()) {
-								filters.loanTypeList.add(Integer.parseInt(loanType));
-							}
-						} catch (SQLException e) {
-							System.out.println("Error fetching loan types: " + e.getMessage());
-						}
-						break;
-					case "5":
-						System.out.println("Tract to MSAMD Income Filter");
-						System.out.print("Enter minimum tract/MSAMD income ratio (or press Enter to skip): ");
-						String minIncome = scanner.nextLine();
-						if (!minIncome.trim().isEmpty()) {
-							try {
-								double min = Double.parseDouble(minIncome);
-								filters.minTractMsamdIncome = min;
-							} catch (NumberFormatException e) {
-								System.out.println("Invalid number format. Minimum income ratio not set.");
-							}
-						}
-
-						System.out.print("Enter maximum tract/MSAMD income ratio (or press Enter to skip): ");
-						String maxIncome = scanner.nextLine();
-						if (!maxIncome.trim().isEmpty()) {
-							try {
-								double max = Double.parseDouble(maxIncome);
-								filters.maxTractMsamdIncome = max;
-							} catch (NumberFormatException e) {
-								System.out.println("Invalid number format. Maximum income ratio not set.");
-							}
-						}
-						break;
-					case "6":
-						System.out.println("Loan Purpose Filter");
-						System.out.println("Available loan purposes:");
-						try (Connection conn = DriverManager.getConnection(
-								"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
-							Statement stmt = conn.createStatement();
-							ResultSet rs = stmt.executeQuery(
-									"SELECT DISTINCT loan_purpose, loan_purpose_name FROM preliminary ORDER BY loan_purpose");
-							while (rs.next()) {
-								System.out.println(rs.getInt("loan_purpose") + ": " + rs.getString("loan_purpose_name"));
-							}
-							System.out.print("Enter loan purpose code (or press Enter to skip): ");
-							String loanPurpose = scanner.nextLine().trim();
-							if (!loanPurpose.isEmpty()) {
-								filters.loanPurposeList.add(Integer.parseInt(loanPurpose));
-							}
-						} catch (SQLException e) {
-							System.out.println("Error fetching loan purposes: " + e.getMessage());
-						}
-						break;
-					case "7":
-						System.out.println("Property Type Filter");
-						System.out.println("Available property types:");
-						try (Connection conn = DriverManager.getConnection(
-								"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
-							Statement stmt = conn.createStatement();
-							ResultSet rs = stmt.executeQuery(
-									"SELECT DISTINCT property_type, property_type_name FROM preliminary ORDER BY property_type");
-							while (rs.next()) {
-								System.out.println(rs.getInt("property_type") + ": " + rs.getString("property_type_name"));
-							}
-							System.out.print("Enter property type code (or press Enter to skip): ");
-							String propertyType = scanner.nextLine().trim();
-							if (!propertyType.isEmpty()) {
-								filters.propertyTypeList.add(Integer.parseInt(propertyType));
-							}
-						} catch (SQLException e) {
-							System.out.println("Error fetching property types: " + e.getMessage());
-						}
-						break;
-					case "8":
-						System.out.println("Purchaser Type Filter");
-						System.out.println("Available purchaser types:");
-						System.out.println("1. Fannie Mae (FNMA)");
-						System.out.println("2. Ginnie Mae (GNMA)");
-						System.out.println("3. Freddie Mac (FHLMC)");
-						System.out.println("4. Farmer Mac (FAMC)");
-						System.out.println("5. Affiliate institution");
-
-						System.out.print("Enter choice (1-5, or press Enter to skip): ");
-						String choice = scanner.nextLine().trim();
-						if (!choice.isEmpty()) {
-							switch (choice) {
-								case "1":
-									filters.purchaserTypeFilter = "Fannie Mae (FNMA)";
-									break;
-								case "2":
-									filters.purchaserTypeFilter = "Ginnie Mae (GNMA)";
-									break;
-								case "3":
-									filters.purchaserTypeFilter = "Freddie Mac (FHLMC)";
-									break;
-								case "4":
-									filters.purchaserTypeFilter = "Farmer Mac (FAMC)";
-									break;
-								case "5":
-									filters.purchaserTypeFilter = "Affiliate institution";
-									break;
-								default:
-									System.out.println("Invalid choice. Purchaser type not set.");
-							}
-						}
-						break;
-					case "9":
-						System.out.println("Owner Occupancy Filter");
-						System.out.println("Available owner occupancy types:");
-						try (Connection conn = DriverManager.getConnection(
-								"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
-							Statement stmt = conn.createStatement();
-							ResultSet rs = stmt.executeQuery(
-									"SELECT DISTINCT owner_occupancy, owner_occupancy_name FROM preliminary ORDER BY owner_occupancy");
-							while (rs.next()) {
-								System.out.println(rs.getInt("owner_occupancy") + ": " + rs.getString("owner_occupancy_name"));
-							}
-							System.out.print("Enter owner occupancy code (or press Enter to skip): ");
-							String occupancy = scanner.nextLine().trim();
-							if (!occupancy.isEmpty()) {
-								filters.ownerOccupancyList.add(Integer.parseInt(occupancy));
-							}
-						} catch (SQLException e) {
-							System.out.println("Error fetching owner occupancy types: " + e.getMessage());
-						}
-						break;
-					default:
-						System.out.println("Invalid filter type: " + filterChoice);
-				}
+			// Fetch loan types
+			List<Map<String, Object>> loanTypes = new ArrayList<>();
+			rs = conn.createStatement().executeQuery(
+					"SELECT DISTINCT loan_type, loan_type_name FROM preliminary ORDER BY loan_type");
+			while (rs.next()) {
+				loanTypes.add(Map.of(
+						"id", rs.getInt("loan_type"),
+						"name", rs.getString("loan_type_name")));
 			}
+			options.put("loanTypes", loanTypes);
+
+			// Fetch loan purposes
+			List<Map<String, Object>> loanPurposes = new ArrayList<>();
+			rs = conn.createStatement().executeQuery(
+					"SELECT DISTINCT loan_purpose, loan_purpose_name FROM preliminary ORDER BY loan_purpose");
+			while (rs.next()) {
+				loanPurposes.add(Map.of(
+						"id", rs.getInt("loan_purpose"),
+						"name", rs.getString("loan_purpose_name")));
+			}
+			options.put("loanPurposes", loanPurposes);
+
+			// Fetch property types
+			List<Map<String, Object>> propertyTypes = new ArrayList<>();
+			rs = conn.createStatement().executeQuery(
+					"SELECT DISTINCT property_type, property_type_name FROM preliminary ORDER BY property_type");
+			while (rs.next()) {
+				propertyTypes.add(Map.of(
+						"id", rs.getInt("property_type"),
+						"name", rs.getString("property_type_name")));
+			}
+			options.put("propertyTypes", propertyTypes);
+
+			// Fetch owner occupancy types
+			List<Map<String, Object>> ownerOccupancyTypes = new ArrayList<>();
+			rs = conn.createStatement().executeQuery(
+					"SELECT DISTINCT owner_occupancy, owner_occupancy_name FROM preliminary ORDER BY owner_occupancy");
+			while (rs.next()) {
+				ownerOccupancyTypes.add(Map.of(
+						"id", rs.getInt("owner_occupancy"),
+						"name", rs.getString("owner_occupancy_name")));
+			}
+			options.put("ownerOccupancyTypes", ownerOccupancyTypes);
+
+			return ResponseEntity.ok(options);
+		} catch (SQLException e) {
+			return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
 		}
 	}
 
-	private static void deleteFilter(Scanner scanner, LoanFilters filters) {
-		System.out.println("\nCurrent filters:");
-		System.out.println("0. Delete ALL filters");
-
-		List<String> activeFilters = new ArrayList<>();
-
-		if (!filters.msamdList.isEmpty()) {
-			activeFilters.add("1. MSAMD filters: " + filters.msamdList);
-		}
-		if (filters.minIncomeDebtRatio != null || filters.maxIncomeDebtRatio != null) {
-			String ratioFilter = "2. Income/Debt Ratio filters: ";
-			if (filters.minIncomeDebtRatio != null) {
-				ratioFilter += "min=" + filters.minIncomeDebtRatio;
-			}
-			if (filters.maxIncomeDebtRatio != null) {
-				ratioFilter += " max=" + filters.maxIncomeDebtRatio;
-			}
-			activeFilters.add(ratioFilter);
-		}
-		if (!filters.countyList.isEmpty()) {
-			activeFilters.add("3. County filters: " + filters.countyList);
-		}
-		if (!filters.loanTypeList.isEmpty()) {
-			activeFilters.add("4. Loan Type filters: " + filters.loanTypeList);
-		}
-		if (filters.minTractMsamdIncome != null || filters.maxTractMsamdIncome != null) {
-			String incomeFilter = "5. Tract/MSAMD Income filters: ";
-			if (filters.minTractMsamdIncome != null) {
-				incomeFilter += "min=" + filters.minTractMsamdIncome;
-			}
-			if (filters.maxTractMsamdIncome != null) {
-				incomeFilter += " max=" + filters.maxTractMsamdIncome;
-			}
-			activeFilters.add(incomeFilter);
-		}
-		if (!filters.loanPurposeList.isEmpty()) {
-			activeFilters.add("6. Loan Purpose filters: " + filters.loanPurposeList);
-		}
-		if (!filters.propertyTypeList.isEmpty()) {
-			activeFilters.add("7. Property Type filters: " + filters.propertyTypeList);
-		}
-		if (filters.purchaserTypeFilter != null) {
-			activeFilters.add("8. Purchaser Type filter: " + filters.purchaserTypeFilter);
-		}
-		if (!filters.ownerOccupancyList.isEmpty()) {
-			activeFilters.add("9. Owner Occupancy filters: " + filters.ownerOccupancyList);
-		}
-
-		if (activeFilters.isEmpty()) {
-			System.out.println("No active filters to delete.");
-			return;
-		}
-
-		for (String filter : activeFilters) {
-			System.out.println(filter);
-		}
-
-		System.out.print("\nSelect filter to delete (0-9): ");
-		String deleteChoice = scanner.nextLine();
-
-		switch (deleteChoice) {
-			case "0":
-				filters.clearAllFilters();
-				System.out.println("All filters cleared.");
-				break;
-			case "1":
-				if (!filters.msamdList.isEmpty()) {
-					filters.msamdList.clear();
-					System.out.println("MSAMD filters cleared.");
-				}
-				break;
-			case "2":
-				if (filters.minIncomeDebtRatio != null || filters.maxIncomeDebtRatio != null) {
-					filters.minIncomeDebtRatio = null;
-					filters.maxIncomeDebtRatio = null;
-					System.out.println("Income/Debt Ratio filters cleared.");
-				}
-				break;
-			case "3":
-				if (!filters.countyList.isEmpty()) {
-					filters.countyList.clear();
-					System.out.println("County filters cleared.");
-				}
-				break;
-			case "4":
-				if (!filters.loanTypeList.isEmpty()) {
-					filters.loanTypeList.clear();
-					System.out.println("Loan Type filters cleared.");
-				}
-				break;
-			case "5":
-				if (filters.minTractMsamdIncome != null || filters.maxTractMsamdIncome != null) {
-					filters.minTractMsamdIncome = null;
-					filters.maxTractMsamdIncome = null;
-					System.out.println("Tract to MSAMD Income filters cleared.");
-				}
-				break;
-			case "6":
-				if (!filters.loanPurposeList.isEmpty()) {
-					filters.loanPurposeList.clear();
-					System.out.println("Loan Purpose filters cleared.");
-				}
-				break;
-			case "7":
-				if (!filters.propertyTypeList.isEmpty()) {
-					filters.propertyTypeList.clear();
-					System.out.println("Property Type filters cleared.");
-				}
-				break;
-			case "8":
-				if (filters.purchaserTypeFilter != null) {
-					filters.purchaserTypeFilter = null;
-					System.out.println("Purchaser Type filter cleared.");
-				}
-				break;
-			case "9":
-				if (!filters.ownerOccupancyList.isEmpty()) {
-					filters.ownerOccupancyList.clear();
-					System.out.println("Owner Occupancy filters cleared.");
-				}
-				break;
-			default:
-				System.out.println("Invalid choice. No filters deleted.");
-		}
-	}
-
-	private static void calculateRate(LoanFilters filters) {
-		System.out.println("\nCalculating rate for current filters...");
+	@PostMapping("/calculate-rate")
+	public ResponseEntity<Map<String, Object>> calculateRate(@RequestBody LoanFilters filters) {
+		Map<String, Object> response = new HashMap<>();
 
 		StringBuilder sql = new StringBuilder(
 				"SELECT lien_status, rate_spread, loan_amount_000s FROM preliminary WHERE action_taken = 1");
@@ -543,288 +398,68 @@ public class Cs336ProjectApplication {
 				double rateSpread = rs.getDouble("rate_spread");
 				double loanAmount = rs.getDouble("loan_amount_000s") * 1000;
 
-				double effectiveRateSpread;
-				if (rateSpread == 0) {
-					if (lienStatus == 1) {
-						effectiveRateSpread = 1.5;
-					} else if (lienStatus == 2) {
-						effectiveRateSpread = 3.5;
-					} else {
-						effectiveRateSpread = 3.5;
-					}
-				} else {
-					effectiveRateSpread = rateSpread;
-				}
+				double effectiveRateSpread = rateSpread == 0
+						? (lienStatus == 1 ? 1.5 : 3.5)
+						: rateSpread;
 
 				double totalRate = baseRate + effectiveRateSpread;
-
 				totalWeightedRate += (totalRate * loanAmount);
 				totalLoanAmount += loanAmount;
 			}
 
 			if (totalLoanAmount == 0) {
-				System.out.println("No matching loans found.");
-				return;
+				return ResponseEntity.ok(Map.of("message", "No matching loans found"));
 			}
 
 			double finalRate = totalWeightedRate / totalLoanAmount;
 
-			System.out.printf("\nSecuritization Summary:");
-			System.out.println("\nTotal Cost of Securitization: $" + Math.round(totalLoanAmount));
-			System.out.printf("\nWeighted Average Rate: %.2f%%", finalRate);
+			response.put("totalCost", Math.round(totalLoanAmount));
+			response.put("weightedAverageRate", Math.round(finalRate * 100.0) / 100.0);
 
-			Scanner scanner = new Scanner(System.in);
-			System.out.print("\n\nDo you accept this rate and cost? (yes/no): ");
-			String decision = scanner.nextLine().toLowerCase();
-
-			if (decision.equals("yes")) {
-				try {
-					StringBuilder updateSql = new StringBuilder(
-							"UPDATE preliminary SET purchaser_type = 1 WHERE action_taken = 1");
-					appendFilterConditions(updateSql, params, filters);
-
-					PreparedStatement updateStmt = conn.prepareStatement(updateSql.toString());
-					for (int i = 0; i < params.size(); i++) {
-						updateStmt.setObject(i + 1, params.get(i));
-					}
-
-					int updatedRows = updateStmt.executeUpdate();
-					System.out.printf("\nSuccessfully updated %d loans to private securitization.", updatedRows);
-					System.out.println("\nProgram complete. Exiting...");
-					System.exit(0);
-
-				} catch (SQLException e) {
-					System.out.println("Failed to update loans: " + e.getMessage());
-					System.out.println("Returning to main menu...");
-				}
-			} else {
-				System.out.println("Rate declined. Returning to main menu...");
-			}
+			return ResponseEntity.ok(response);
 
 		} catch (SQLException e) {
-			System.out.println("Error calculating rate: " + e.getMessage());
+			return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
 		}
 	}
 
-	private static void appendFilterConditions(StringBuilder sql, List<Object> params, LoanFilters filters) {
-		if (!filters.msamdList.isEmpty()) {
-			sql.append(" AND msamd IN (");
-			sql.append(String.join(",", Collections.nCopies(filters.msamdList.size(), "?")));
-			sql.append(")");
-			params.addAll(filters.msamdList);
-		}
-
-		if (filters.minIncomeDebtRatio != null) {
-			sql.append(" AND (applicant_income_000s / loan_amount_000s) >= ?");
-			params.add(filters.minIncomeDebtRatio);
-		}
-		if (filters.maxIncomeDebtRatio != null) {
-			sql.append(" AND (applicant_income_000s / loan_amount_000s) <= ?");
-			params.add(filters.maxIncomeDebtRatio);
-		}
-
-		if (!filters.countyList.isEmpty()) {
-			sql.append(" AND county_name IN (");
-			sql.append(String.join(",", Collections.nCopies(filters.countyList.size(), "?")));
-			sql.append(")");
-			params.addAll(filters.countyList);
-		}
-
-		if (!filters.loanTypeList.isEmpty()) {
-			sql.append(" AND loan_type IN (");
-			sql.append(String.join(",", Collections.nCopies(filters.loanTypeList.size(), "?")));
-			sql.append(")");
-			params.addAll(filters.loanTypeList);
-		}
-
-		if (!filters.loanPurposeList.isEmpty()) {
-			sql.append(" AND loan_purpose IN (");
-			sql.append(String.join(",", Collections.nCopies(filters.loanPurposeList.size(), "?")));
-			sql.append(")");
-			params.addAll(filters.loanPurposeList);
-		}
-
-		if (!filters.propertyTypeList.isEmpty()) {
-			sql.append(" AND property_type IN (");
-			sql.append(String.join(",", Collections.nCopies(filters.propertyTypeList.size(), "?")));
-			sql.append(")");
-			params.addAll(filters.propertyTypeList);
-		}
-
-		if (filters.purchaserTypeFilter != null) {
-			sql.append(" AND purchaser_type_name = ?");
-			params.add(filters.purchaserTypeFilter);
-		}
-
-		if (!filters.ownerOccupancyList.isEmpty()) {
-			sql.append(" AND owner_occupancy IN (");
-			sql.append(String.join(",", Collections.nCopies(filters.ownerOccupancyList.size(), "?")));
-			sql.append(")");
-			params.addAll(filters.ownerOccupancyList);
-		}
-
-		if (filters.minTractMsamdIncome != null) {
-			sql.append(" AND tract_to_msamd_income >= ?");
-			params.add(filters.minTractMsamdIncome);
-		}
-		if (filters.maxTractMsamdIncome != null) {
-			sql.append(" AND tract_to_msamd_income <= ?");
-			params.add(filters.maxTractMsamdIncome);
-		}
-	}
-
-	private static void addNewMortgage(Scanner scanner) {
-		Map<String, Object> mortgageData = new HashMap<>();
-		boolean isComplete = false;
-
-		while (!isComplete) {
-			System.out.println("\nSelect information to add (or 'done' when finished):");
-			System.out.println("1. Income");
-			System.out.println("2. Loan Amount");
-			System.out.println("3. MSAMD");
-			System.out.println("4. Applicant Sex");
-			System.out.println("5. Loan Type");
-			System.out.println("6. Ethnicity");
-			System.out.println("Type 'done' to finish");
-
-			System.out.print("\nEnter choice: ");
-			String choice = scanner.nextLine().trim();
-
-			if (choice.equalsIgnoreCase("done")) {
-				if (mortgageData.size() == 6) {
-					isComplete = true;
-					continue;
-				} else {
-					System.out.println("Please complete all required fields before proceeding.");
-					continue;
-				}
-			}
-
-			switch (choice) {
-				case "1":
-					System.out.print("Enter income (in thousands): ");
-					try {
-						int income = Integer.parseInt(scanner.nextLine().trim());
-						mortgageData.put("applicant_income_000s", income);
-					} catch (NumberFormatException e) {
-						System.out.println("Invalid input. Please enter a number.");
-					}
-					break;
-
-				case "2":
-					System.out.print("Enter loan amount (in thousands): ");
-					try {
-						int loanAmount = Integer.parseInt(scanner.nextLine().trim());
-						mortgageData.put("loan_amount_000s", loanAmount);
-					} catch (NumberFormatException e) {
-						System.out.println("Invalid input. Please enter a number.");
-					}
-					break;
-
-				case "3":
-					try (Connection conn = DriverManager.getConnection(
-							"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
-						Statement stmt = conn.createStatement();
-						ResultSet rs = stmt.executeQuery(
-								"SELECT DISTINCT msamd, msamd_name FROM preliminary " +
-										"WHERE msamd IS NOT NULL AND msamd_name IS NOT NULL " +
-										"ORDER BY msamd");
-						System.out.println("\nAvailable MSAMDs:");
-						while (rs.next()) {
-							System.out.println(rs.getInt("msamd") + ": " + rs.getString("msamd_name"));
-						}
-						System.out.print("Enter MSAMD code: ");
-						int msamd = Integer.parseInt(scanner.nextLine().trim());
-						mortgageData.put("msamd", msamd);
-					} catch (SQLException e) {
-						System.out.println("Error fetching MSAMDs: " + e.getMessage());
-					}
-					break;
-
-				case "4":
-					System.out.println("\nApplicant Sex Options:");
-					System.out.println("1: Male");
-					System.out.println("2: Female");
-					System.out.println("3: Information not provided");
-					System.out.println("4: Not applicable");
-					System.out.print("Enter choice (1-4): ");
-					try {
-						int sex = Integer.parseInt(scanner.nextLine().trim());
-						if (sex >= 1 && sex <= 4) {
-							mortgageData.put("applicant_sex", sex);
-						} else {
-							System.out.println("Invalid choice.");
-						}
-					} catch (NumberFormatException e) {
-						System.out.println("Invalid input. Please enter a number.");
-					}
-					break;
-
-				case "5":
-					try (Connection conn = DriverManager.getConnection(
-							"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
-						Statement stmt = conn.createStatement();
-						ResultSet rs = stmt.executeQuery(
-								"SELECT DISTINCT loan_type, loan_type_name FROM preliminary " +
-										"WHERE loan_type_name IS NOT NULL " +
-										"GROUP BY loan_type, loan_type_name " +
-										"ORDER BY loan_type");
-						System.out.println("\nAvailable loan types:");
-						while (rs.next()) {
-							System.out.println(rs.getInt("loan_type") + ": " + rs.getString("loan_type_name"));
-						}
-						System.out.print("Enter loan type code: ");
-						String loanTypeStr = scanner.nextLine().trim();
-						if (!loanTypeStr.isEmpty()) {
-							int loanType = Integer.parseInt(loanTypeStr);
-							stmt = conn.createStatement();
-							rs = stmt.executeQuery(
-									"SELECT loan_type FROM preliminary " +
-											"WHERE loan_type = " + loanType + " AND loan_type_name IS NOT NULL " +
-											"LIMIT 1");
-							if (rs.next()) {
-								mortgageData.put("loan_type", loanType);
-							} else {
-								System.out.println("Invalid loan type code.");
-							}
-						}
-					} catch (SQLException e) {
-						System.out.println("Error fetching loan types: " + e.getMessage());
-					}
-					break;
-
-				case "6":
-					System.out.println("\nEthnicity Options:");
-					System.out.println("1: Hispanic or Latino");
-					System.out.println("2: Not Hispanic or Latino");
-					System.out.println("3: Information not provided");
-					System.out.println("4: Not applicable");
-					System.out.print("Enter choice (1-4): ");
-					try {
-						int ethnicity = Integer.parseInt(scanner.nextLine().trim());
-						if (ethnicity >= 1 && ethnicity <= 4) {
-							mortgageData.put("applicant_ethnicity", ethnicity);
-						} else {
-							System.out.println("Invalid choice.");
-						}
-					} catch (NumberFormatException e) {
-						System.out.println("Invalid input. Please enter a number.");
-					}
-					break;
-
-				default:
-					System.out.println("Invalid choice. Please try again.");
-			}
-		}
-
+	@PostMapping("/accept-rate")
+	public ResponseEntity<Map<String, Object>> acceptRate(@RequestBody LoanFilters filters) {
 		try (Connection conn = DriverManager.getConnection(
 				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
 
+			StringBuilder sql = new StringBuilder(
+					"UPDATE preliminary SET purchaser_type = 1 WHERE action_taken = 1");
+
+			List<Object> params = new ArrayList<>();
+			appendFilterConditions(sql, params, filters);
+
+			PreparedStatement stmt = conn.prepareStatement(sql.toString());
+			for (int i = 0; i < params.size(); i++) {
+				stmt.setObject(i + 1, params.get(i));
+			}
+
+			int updatedRows = stmt.executeUpdate();
+			return ResponseEntity.ok(Map.of(
+					"message", "Successfully updated loans",
+					"updatedLoans", updatedRows));
+
+		} catch (SQLException e) {
+			return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+		}
+	}
+
+	@PostMapping("/mortgage")
+	public ResponseEntity<Map<String, Object>> addNewMortgage(@RequestBody Map<String, Object> mortgageData) {
+		try (Connection conn = DriverManager.getConnection(
+				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
+
+			// Fetch location data based on MSAMD
 			PreparedStatement locationStmt = conn.prepareStatement(
 					"SELECT state_code, county_code, census_tract_number FROM preliminary " +
 							"WHERE msamd = ? AND state_code IS NOT NULL AND county_code IS NOT NULL " +
 							"LIMIT 1");
-			locationStmt.setInt(1, (Integer) mortgageData.get("msamd"));
+			locationStmt.setInt(1, ((Number) mortgageData.get("msamd")).intValue());
 			ResultSet locationRs = locationStmt.executeQuery();
 
 			if (locationRs.next()) {
@@ -847,7 +482,6 @@ public class Cs336ProjectApplication {
 
 			sql.setLength(sql.length() - 2);
 			values.setLength(values.length() - 2);
-
 			sql.append(") ").append(values).append(")");
 
 			PreparedStatement pstmt = conn.prepareStatement(sql.toString());
@@ -857,13 +491,13 @@ public class Cs336ProjectApplication {
 
 			int result = pstmt.executeUpdate();
 			if (result > 0) {
-				System.out.println("New mortgage successfully added to the database!");
+				return ResponseEntity.ok(Map.of("message", "New mortgage successfully added"));
 			} else {
-				System.out.println("Failed to add new mortgage.");
+				return ResponseEntity.badRequest().body(Map.of("error", "Failed to add mortgage"));
 			}
 
 		} catch (SQLException e) {
-			System.out.println("Error adding new mortgage: " + e.getMessage());
+			return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
 		}
 	}
 }
