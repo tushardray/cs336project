@@ -198,6 +198,49 @@ public class Cs336ProjectApplication {
 			purchaserTypeFilter = null;
 			ownerOccupancyList.clear();
 		}
+
+		public void deleteFilter(String filterName) {
+			switch (filterName.toLowerCase()) {
+				case "msamd":
+					msamdList.clear();
+					break;
+				case "incomedebt":
+					minIncomeDebtRatio = null;
+					maxIncomeDebtRatio = null;
+					break;
+				case "county":
+					countyList.clear();
+					break;
+				case "loantype":
+					loanTypeList.clear();
+					break;
+				case "tractmsamdincome":
+					minTractMsamdIncome = null;
+					maxTractMsamdIncome = null;
+					break;
+				case "loanpurpose":
+					loanPurposeList.clear();
+					break;
+				case "propertytype":
+					propertyTypeList.clear();
+					break;
+				case "purchasertype":
+					purchaserTypeFilter = null;
+					break;
+				case "owneroccupancy":
+					ownerOccupancyList.clear();
+					break;
+				default:
+					throw new IllegalArgumentException("Unknown filter name: " + filterName);
+			}
+		}
+
+		public void deleteFilters(List<String> filterNames) {
+			for (String filterName : filterNames) {
+				deleteFilter(filterName);
+			}
+		}
+
 	}
 
 	public static void main(String[] args) {
@@ -283,7 +326,7 @@ public class Cs336ProjectApplication {
 		appendFilterConditions(sql, params, filters);
 
 		try (Connection conn = DriverManager.getConnection(
-				"jdbc:postgresql://localhost:5433/postgres", "postgres", "Test1234*");
+				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password");
 				PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
 
 			for (int i = 0; i < params.size(); i++) {
@@ -313,59 +356,75 @@ public class Cs336ProjectApplication {
 			// Fetch counties
 			List<Map<String, Object>> counties = new ArrayList<>();
 			ResultSet rs = conn.createStatement().executeQuery(
-					"SELECT DISTINCT county_name FROM preliminary ORDER BY county_name");
+					"SELECT DISTINCT county_name FROM preliminary WHERE county_name IS NOT NULL ORDER BY county_name");
 			while (rs.next()) {
-				counties.add(Map.of("name", rs.getString("county_name")));
+				String countyName = rs.getString("county_name");
+				if (countyName != null) {
+					HashMap<String, Object> county = new HashMap<>();
+					county.put("name", countyName);
+					counties.add(county);
+				}
 			}
 			options.put("counties", counties);
 
 			// Fetch loan types
 			List<Map<String, Object>> loanTypes = new ArrayList<>();
 			rs = conn.createStatement().executeQuery(
-					"SELECT DISTINCT loan_type, loan_type_name FROM preliminary ORDER BY loan_type");
+					"SELECT DISTINCT loan_type, loan_type_name FROM preliminary WHERE loan_type IS NOT NULL ORDER BY loan_type");
 			while (rs.next()) {
-				loanTypes.add(Map.of(
-						"id", rs.getInt("loan_type"),
-						"name", rs.getString("loan_type_name")));
+				HashMap<String, Object> loanType = new HashMap<>();
+				loanType.put("id", rs.getInt("loan_type"));
+				loanType.put("name",
+						rs.getString("loan_type_name") != null ? rs.getString("loan_type_name") : "Type " + rs.getInt("loan_type"));
+				loanTypes.add(loanType);
 			}
 			options.put("loanTypes", loanTypes);
 
 			// Fetch loan purposes
 			List<Map<String, Object>> loanPurposes = new ArrayList<>();
 			rs = conn.createStatement().executeQuery(
-					"SELECT DISTINCT loan_purpose, loan_purpose_name FROM preliminary ORDER BY loan_purpose");
+					"SELECT DISTINCT loan_purpose, loan_purpose_name FROM preliminary WHERE loan_purpose IS NOT NULL ORDER BY loan_purpose");
 			while (rs.next()) {
-				loanPurposes.add(Map.of(
-						"id", rs.getInt("loan_purpose"),
-						"name", rs.getString("loan_purpose_name")));
+				HashMap<String, Object> purpose = new HashMap<>();
+				purpose.put("id", rs.getInt("loan_purpose"));
+				purpose.put("name", rs.getString("loan_purpose_name") != null ? rs.getString("loan_purpose_name")
+						: "Purpose " + rs.getInt("loan_purpose"));
+				loanPurposes.add(purpose);
 			}
 			options.put("loanPurposes", loanPurposes);
 
 			// Fetch property types
 			List<Map<String, Object>> propertyTypes = new ArrayList<>();
 			rs = conn.createStatement().executeQuery(
-					"SELECT DISTINCT property_type, property_type_name FROM preliminary ORDER BY property_type");
+					"SELECT DISTINCT property_type, property_type_name FROM preliminary WHERE property_type IS NOT NULL ORDER BY property_type");
 			while (rs.next()) {
-				propertyTypes.add(Map.of(
-						"id", rs.getInt("property_type"),
-						"name", rs.getString("property_type_name")));
+				HashMap<String, Object> propertyType = new HashMap<>();
+				propertyType.put("id", rs.getInt("property_type"));
+				propertyType.put("name", rs.getString("property_type_name") != null ? rs.getString("property_type_name")
+						: "Property " + rs.getInt("property_type"));
+				propertyTypes.add(propertyType);
 			}
 			options.put("propertyTypes", propertyTypes);
 
 			// Fetch owner occupancy types
 			List<Map<String, Object>> ownerOccupancyTypes = new ArrayList<>();
 			rs = conn.createStatement().executeQuery(
-					"SELECT DISTINCT owner_occupancy, owner_occupancy_name FROM preliminary ORDER BY owner_occupancy");
+					"SELECT DISTINCT owner_occupancy, owner_occupancy_name FROM preliminary WHERE owner_occupancy IS NOT NULL ORDER BY owner_occupancy");
 			while (rs.next()) {
-				ownerOccupancyTypes.add(Map.of(
-						"id", rs.getInt("owner_occupancy"),
-						"name", rs.getString("owner_occupancy_name")));
+				HashMap<String, Object> occupancyType = new HashMap<>();
+				occupancyType.put("id", rs.getInt("owner_occupancy"));
+				occupancyType.put("name", rs.getString("owner_occupancy_name") != null ? rs.getString("owner_occupancy_name")
+						: "Occupancy " + rs.getInt("owner_occupancy"));
+				ownerOccupancyTypes.add(occupancyType);
 			}
 			options.put("ownerOccupancyTypes", ownerOccupancyTypes);
 
 			return ResponseEntity.ok(options);
+
 		} catch (SQLException e) {
-			return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("error", e.getMessage());
+			return ResponseEntity.internalServerError().body(errorResponse);
 		}
 	}
 
@@ -454,22 +513,38 @@ public class Cs336ProjectApplication {
 		try (Connection conn = DriverManager.getConnection(
 				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
 
-			// Fetch location data based on MSAMD
+			// Fetch location data based on MSAMD and county
 			PreparedStatement locationStmt = conn.prepareStatement(
 					"SELECT state_code, county_code, census_tract_number FROM preliminary " +
-							"WHERE msamd = ? AND state_code IS NOT NULL AND county_code IS NOT NULL " +
+							"WHERE msamd = ? AND LOWER(county) = LOWER(?) " +
+							"AND state_code IS NOT NULL AND county_code IS NOT NULL " +
 							"LIMIT 1");
 			locationStmt.setInt(1, ((Number) mortgageData.get("msamd")).intValue());
+			locationStmt.setString(2, (String) mortgageData.get("county"));
 			ResultSet locationRs = locationStmt.executeQuery();
 
-			if (locationRs.next()) {
-				mortgageData.put("state_code", locationRs.getInt("state_code"));
-				mortgageData.put("county_code", locationRs.getInt("county_code"));
-				mortgageData.put("census_tract_number", locationRs.getInt("census_tract_number"));
+			if (!locationRs.next()) {
+				// If no exact match, try to find any entry with the same MSAMD as fallback
+				locationStmt = conn.prepareStatement(
+						"SELECT state_code, county_code, census_tract_number FROM preliminary " +
+								"WHERE msamd = ? AND state_code IS NOT NULL AND county_code IS NOT NULL " +
+								"LIMIT 1");
+				locationStmt.setInt(1, ((Number) mortgageData.get("msamd")).intValue());
+				locationRs = locationStmt.executeQuery();
+
+				if (!locationRs.next()) {
+					return ResponseEntity.badRequest()
+							.body(Map.of("error", "Could not find location data for the given MSAMD and county"));
+				}
 			}
 
+			// Add location data to mortgage data
+			mortgageData.put("state_code", locationRs.getInt("state_code"));
+			mortgageData.put("county_code", locationRs.getInt("county_code"));
+			mortgageData.put("census_tract_number", locationRs.getInt("census_tract_number"));
 			mortgageData.put("action_taken", 1);
 
+			// Build and execute insert query
 			StringBuilder sql = new StringBuilder("INSERT INTO preliminary (");
 			StringBuilder values = new StringBuilder("VALUES (");
 			List<Object> params = new ArrayList<>();
@@ -498,6 +573,57 @@ public class Cs336ProjectApplication {
 
 		} catch (SQLException e) {
 			return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+		}
+	}
+
+	@DeleteMapping("/filters/all")
+	public ResponseEntity<Map<String, Object>> clearAllFilters(@RequestBody LoanFilters filters) {
+		filters.clearAllFilters();
+		return ResponseEntity.ok(Map.of(
+				"message", "All filters cleared",
+				"remainingFilters", filters.getFilterDescription()));
+	}
+
+	public static class DeleteFiltersRequest {
+		private LoanFilters filters;
+		private List<String> filterNames;
+
+		public LoanFilters getFilters() {
+			return filters;
+		}
+
+		public void setFilters(LoanFilters filters) {
+			this.filters = filters;
+		}
+
+		public List<String> getFilterNames() {
+			return filterNames;
+		}
+
+		public void setFilterNames(List<String> filterNames) {
+			this.filterNames = filterNames;
+		}
+	}
+
+	@DeleteMapping("/filters")
+	public ResponseEntity<Map<String, Object>> deleteFilters(@RequestBody DeleteFiltersRequest request) {
+		try {
+			if (request.getFilters() == null || request.getFilterNames() == null) {
+				return ResponseEntity.badRequest().body(Map.of(
+						"error", "Both filters and filterNames are required"));
+			}
+
+			request.getFilters().deleteFilters(request.getFilterNames());
+			return ResponseEntity.ok(Map.of(
+					"message", "Selected filters deleted",
+					"deletedFilters", request.getFilterNames(),
+					"remainingFilters", request.getFilters().getFilterDescription()));
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.badRequest().body(Map.of(
+					"error", e.getMessage()));
+		} catch (Exception e) {
+			return ResponseEntity.internalServerError().body(Map.of(
+					"error", e.getMessage()));
 		}
 	}
 }
