@@ -55,7 +55,6 @@ const AddMortgageForm = ({ filterOptions = { loanTypes: [], counties: [] }, onMo
         setMessage('Mortgage added successfully');
       }
 
-      // Clear form
       setMortgageData({
         msamd: '',
         loan_amount_000s: '',

@@ -149,10 +149,8 @@ export default function LoanFilterUI() {
     setError(null);
 
     try {
-      // Create a copy of filters
       const filterData = { ...filters };
 
-      // Clean up the data - remove empty arrays and null values
       Object.keys(filterData).forEach((key) => {
         if (
           filterData[key] === null ||
@@ -265,13 +263,11 @@ export default function LoanFilterUI() {
   const handleCheckboxChange = (value, listName) => {
     setSelectedFilters((prev) => {
       if (listName === "purchaserTypeFilter") {
-        // If clicking the same value, unselect it
         return {
           ...prev,
           [listName]: prev[listName] === value ? null : value,
         };
       }
-      // For all other filters, keep the array behavior
       const currentList = prev[listName];
       const newList = currentList.includes(value)
         ? currentList.filter((item) => item !== value)
@@ -431,7 +427,6 @@ export default function LoanFilterUI() {
 
       <ActiveFilters />
 
-      {/* MSAMD Filter */}
       <div className="mb-4">
         <h2 className="text-xl font-semibold mb-2">MSAMD</h2>
         <input
@@ -452,7 +447,6 @@ export default function LoanFilterUI() {
         />
       </div>
 
-      {/* Income/Debt Ratio Filter */}
       <div className="mb-4">
         <h2 className="text-xl font-semibold mb-2">Income/Debt Ratio</h2>
         <div className="flex gap-2">
@@ -477,7 +471,6 @@ export default function LoanFilterUI() {
         </div>
       </div>
 
-      {/* Counties */}
       <FilterSection
         title="Counties"
         items={filterOptions.counties || []}
@@ -486,7 +479,6 @@ export default function LoanFilterUI() {
         searchTerm={searchTerms.county}
       />
 
-      {/* Loan Types */}
       <FilterSection
         title="Loan Types"
         items={filterOptions.loanTypes || []}
@@ -496,7 +488,6 @@ export default function LoanFilterUI() {
         showId={true}
       />
 
-      {/* Tract to MSAMD Income Filter */}
       <div className="mb-4">
         <h2 className="text-xl font-semibold mb-2">Tract to MSAMD Income</h2>
         <div className="flex gap-2">
@@ -521,7 +512,6 @@ export default function LoanFilterUI() {
         </div>
       </div>
 
-      {/* Loan Purposes */}
       <FilterSection
         title="Loan Purposes"
         items={filterOptions.loanPurposes || []}
@@ -531,7 +521,6 @@ export default function LoanFilterUI() {
         showId={true}
       />
 
-      {/* Property Types */}
       <FilterSection
         title="Property Types"
         items={filterOptions.propertyTypes || []}
@@ -541,7 +530,6 @@ export default function LoanFilterUI() {
         showId={true}
       />
 
-      {/* Purchaser Type */}
       <FilterSection
         title="Purchaser Type"
         items={purchaserTypes}
@@ -550,7 +538,6 @@ export default function LoanFilterUI() {
         searchTerm={searchTerms.purchaserType}
       />
 
-      {/* Owner Occupancy */}
       <FilterSection
         title="Owner Occupancy"
         items={filterOptions.ownerOccupancyTypes || []}
@@ -560,7 +547,6 @@ export default function LoanFilterUI() {
         showId={true}
       />
 
-      {/* Action Buttons */}
       <div className="mt-6 space-x-2">
         <button
           onClick={updateStats}
@@ -584,7 +570,6 @@ export default function LoanFilterUI() {
         )}
       </div>
 
-      {/* Stats Display */}
       {stats && (
         <div className="mt-6">
           <h2 className="text-xl font-semibold mb-2">Current Stats:</h2>
@@ -599,7 +584,6 @@ export default function LoanFilterUI() {
         </div>
       )}
 
-      {/* Rate Display */}
       {rate && (
         <div className="mt-6">
           <h2 className="text-xl font-semibold mb-2">Calculated Rate:</h2>

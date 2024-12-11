@@ -26,11 +26,9 @@ public class Cs336ProjectApplication {
 		private String purchaserTypeFilter;
 		private Set<Integer> ownerOccupancyList = new HashSet<>();
 
-		// Default constructor
 		public LoanFilters() {
 		}
 
-		// Getters and setters
 		public Set<Integer> getMsamdList() {
 			return msamdList;
 		}
@@ -353,7 +351,6 @@ public class Cs336ProjectApplication {
 		try (Connection conn = DriverManager.getConnection(
 				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
 
-			// Fetch counties
 			List<Map<String, Object>> counties = new ArrayList<>();
 			ResultSet rs = conn.createStatement().executeQuery(
 					"SELECT DISTINCT county_name FROM preliminary WHERE county_name IS NOT NULL ORDER BY county_name");
@@ -367,7 +364,6 @@ public class Cs336ProjectApplication {
 			}
 			options.put("counties", counties);
 
-			// Fetch loan types
 			List<Map<String, Object>> loanTypes = new ArrayList<>();
 			rs = conn.createStatement().executeQuery(
 					"SELECT DISTINCT loan_type, loan_type_name FROM preliminary WHERE loan_type IS NOT NULL ORDER BY loan_type");
@@ -380,7 +376,6 @@ public class Cs336ProjectApplication {
 			}
 			options.put("loanTypes", loanTypes);
 
-			// Fetch loan purposes
 			List<Map<String, Object>> loanPurposes = new ArrayList<>();
 			rs = conn.createStatement().executeQuery(
 					"SELECT DISTINCT loan_purpose, loan_purpose_name FROM preliminary WHERE loan_purpose IS NOT NULL ORDER BY loan_purpose");
@@ -393,7 +388,6 @@ public class Cs336ProjectApplication {
 			}
 			options.put("loanPurposes", loanPurposes);
 
-			// Fetch property types
 			List<Map<String, Object>> propertyTypes = new ArrayList<>();
 			rs = conn.createStatement().executeQuery(
 					"SELECT DISTINCT property_type, property_type_name FROM preliminary WHERE property_type IS NOT NULL ORDER BY property_type");
@@ -406,7 +400,6 @@ public class Cs336ProjectApplication {
 			}
 			options.put("propertyTypes", propertyTypes);
 
-			// Fetch owner occupancy types
 			List<Map<String, Object>> ownerOccupancyTypes = new ArrayList<>();
 			rs = conn.createStatement().executeQuery(
 					"SELECT DISTINCT owner_occupancy, owner_occupancy_name FROM preliminary WHERE owner_occupancy IS NOT NULL ORDER BY owner_occupancy");
@@ -513,7 +506,6 @@ public class Cs336ProjectApplication {
 		try (Connection conn = DriverManager.getConnection(
 				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
 
-			// Fetch location data based on MSAMD
 			PreparedStatement locationStmt = conn.prepareStatement(
 					"SELECT state_code, county_name, census_tract_number FROM preliminary " +
 							"WHERE msamd = ? AND state_code IS NOT NULL AND county_name IS NOT NULL " +
