@@ -513,38 +513,22 @@ public class Cs336ProjectApplication {
 		try (Connection conn = DriverManager.getConnection(
 				"jdbc:postgresql://localhost:5433/postgres", "postgres", "password")) {
 
-			// Fetch location data based on MSAMD and county
+			// Fetch location data based on MSAMD
 			PreparedStatement locationStmt = conn.prepareStatement(
-					"SELECT state_code, county_code, census_tract_number FROM preliminary " +
-							"WHERE msamd = ? AND LOWER(county) = LOWER(?) " +
-							"AND state_code IS NOT NULL AND county_code IS NOT NULL " +
+					"SELECT state_code, county_name, census_tract_number FROM preliminary " +
+							"WHERE msamd = ? AND state_code IS NOT NULL AND county_name IS NOT NULL " +
 							"LIMIT 1");
 			locationStmt.setInt(1, ((Number) mortgageData.get("msamd")).intValue());
-			locationStmt.setString(2, (String) mortgageData.get("county"));
 			ResultSet locationRs = locationStmt.executeQuery();
 
-			if (!locationRs.next()) {
-				// If no exact match, try to find any entry with the same MSAMD as fallback
-				locationStmt = conn.prepareStatement(
-						"SELECT state_code, county_code, census_tract_number FROM preliminary " +
-								"WHERE msamd = ? AND state_code IS NOT NULL AND county_code IS NOT NULL " +
-								"LIMIT 1");
-				locationStmt.setInt(1, ((Number) mortgageData.get("msamd")).intValue());
-				locationRs = locationStmt.executeQuery();
-
-				if (!locationRs.next()) {
-					return ResponseEntity.badRequest()
-							.body(Map.of("error", "Could not find location data for the given MSAMD and county"));
-				}
+			if (locationRs.next()) {
+				mortgageData.put("state_code", locationRs.getInt("state_code"));
+				mortgageData.put("county_name", locationRs.getString("county_name"));
+				mortgageData.put("census_tract_number", locationRs.getInt("census_tract_number"));
 			}
 
-			// Add location data to mortgage data
-			mortgageData.put("state_code", locationRs.getInt("state_code"));
-			mortgageData.put("county_code", locationRs.getInt("county_code"));
-			mortgageData.put("census_tract_number", locationRs.getInt("census_tract_number"));
 			mortgageData.put("action_taken", 1);
 
-			// Build and execute insert query
 			StringBuilder sql = new StringBuilder("INSERT INTO preliminary (");
 			StringBuilder values = new StringBuilder("VALUES (");
 			List<Object> params = new ArrayList<>();

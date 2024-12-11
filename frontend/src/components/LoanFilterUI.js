@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import AddMortgageForm from "./AddMortgageForm";
 
 export default function LoanFilterUI() {
   const [filterOptions, setFilterOptions] = useState({
@@ -610,6 +611,11 @@ export default function LoanFilterUI() {
           </div>
         </div>
       )}
+
+      <AddMortgageForm
+        filterOptions={filterOptions}
+        onMortgageAdded={() => fetchFilterOptions()}
+      />
     </div>
   );
 }
